@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="preloaded_fonts" translatable="false">
+        <item>@font/aclonica</item>
+        <item>@font/aguafina_script</item>
+        <item>@font/cherry_swash</item>
+        <item>@font/eagle_lake</item>
+        <item>@font/elsie_swash_caps_black</item>
+        <item>@font/hachi_maru_pop</item>
+    </array>
+</resources>
