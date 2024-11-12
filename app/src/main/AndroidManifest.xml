@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.crud2">
 
@@ -9,6 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
+        <!-- Main Activity (entry point of the app) -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -18,9 +20,33 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".Login" />
-        <activity android:name=".Register" />
 
+        <!-- Register Activity -->
+        <activity
+            android:name=".Register"
+            android:exported="true" />
+
+        <!-- Login Activity -->
+        <activity
+            android:name=".Login"
+            android:exported="true" /> <!-- Login Activity -->
+
+        <!-- Home Activity (after successful login) -->
+        <activity
+            android:name=".HomeActivity"
+            android:exported="false" />
+
+        <!-- Verification Activity -->
+        <activity
+            android:name=".Verification"
+            android:exported="false" />
+
+        <!-- Other Activities -->
+        <activity
+            android:name=".NumberPage"
+            android:exported="false" />
+
+        <!-- Meta data for preloaded fonts (if applicable) -->
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />

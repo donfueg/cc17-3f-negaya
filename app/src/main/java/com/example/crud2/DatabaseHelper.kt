@@ -2,47 +2,85 @@ package com.example.crud2
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
-class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "UserDB", null, 1) {
 
-    companion object {
-        private const val DATABASE_NAME = "user_database.db"
-        private const val DATABASE_VERSION = 1
-        const val TABLE_USERS = "users"
-        const val COLUMN_ID = "id"
-        const val COLUMN_USERNAME = "username"
-        const val COLUMN_PASSWORD = "password"
-    }
+    // Database creation sql statement
+    private val DATABASE_CREATE = ("create table users ("
+            + "id integer primary key autoincrement,"
+            + "username text,"
+            + "password text,"
+            + "email text,"
+            + "number text"
+            + ");")
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createTable = ("CREATE TABLE " + TABLE_USERS + "("
-                + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + COLUMN_USERNAME + " TEXT,"
-                + COLUMN_PASSWORD + " TEXT" + ")")
-        db.execSQL(createTable)
+        db.execSQL(DATABASE_CREATE)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
+        db.execSQL("DROP TABLE IF EXISTS users")
         onCreate(db)
     }
 
-    fun insertUser(username: String, password: String): Long {
-        val db = this.writableDatabase
-        val contentValues = ContentValues().apply {
-            put(COLUMN_USERNAME, username)
-            put(COLUMN_PASSWORD, password)
-        }
-        return db.insert(TABLE_USERS, null, contentValues) // returns the row ID of the newly inserted row
+    // Insert a new user into the database
+    fun insertUser(username: String, password: String, email: String): Long {
+        val db = writableDatabase
+        val values = ContentValues()
+        values.put("username", username)
+        values.put("password", password)
+        values.put("email", email)
+        return db.insert("users", null, values)
     }
 
-    fun validateUser(username: String, password: String): Boolean {
-        val db = this.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM $TABLE_USERS WHERE $COLUMN_USERNAME=? AND $COLUMN_PASSWORD=?", arrayOf(username, password))
-        val isValidUser = cursor.count > 0
+    // Get a user by username
+    fun getUser(username: String): User? {
+        val db = readableDatabase
+        val cursor = db.query("users", null, "username=?", arrayOf(username), null, null, null)
+        if (cursor.moveToFirst()) {
+            return User(
+                cursor.getInt(cursor.getColumnIndexOrThrow("id")),
+                cursor.getString(cursor.getColumnIndexOrThrow("username")),
+                cursor.getString(cursor.getColumnIndexOrThrow("password")),
+                cursor.getString(cursor.getColumnIndexOrThrow("email")),
+                cursor.getString(cursor.getColumnIndexOrThrow("number"))
+            )
+        }
+        return null
+    }
+
+    // Check if a user with the given email already exists
+    fun isEmailExists(email: String): Boolean {
+        val db = readableDatabase
+        val cursor = db.query("users", null, "email=?", arrayOf(email), null, null, null)
+        val exists = cursor.moveToFirst()
         cursor.close()
-        return isValidUser
+        return exists
+    }
+
+    // Update the user's number
+    fun updateUserNumber(username: String, number: String): Int {
+        val db = writableDatabase
+        val values = ContentValues()
+        values.put("number", number)
+        return db.update("users", values, "username=?", arrayOf(username))
+    }
+
+    // Get the user's number by username
+    fun getUserNumber(username: String): String? {
+        val db = readableDatabase
+        val cursor = db.query("users", arrayOf("number"), "username=?", arrayOf(username), null, null, null)
+        if (cursor.moveToFirst()) {
+            val number = cursor.getString(cursor.getColumnIndexOrThrow("number"))
+            cursor.close()
+            return number
+        }
+        cursor.close()
+        return null
     }
 }
+
+data class User(val id: Int, val username: String, val password: String, val email: String, val number: String)
