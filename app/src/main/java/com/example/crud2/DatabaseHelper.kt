@@ -8,13 +8,14 @@ import android.database.sqlite.SQLiteOpenHelper
 
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "UserDB", null, 1) {
 
-    // Database creation sql statement
+    // Database creation SQL statement
     private val DATABASE_CREATE = ("create table users ("
             + "id integer primary key autoincrement,"
             + "username text,"
             + "password text,"
             + "email text,"
-            + "number text"
+            + "number text,"
+            + "isAdmin integer default 0"  // Default to 0 (not an admin)
             + ");")
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -46,7 +47,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "UserDB", nul
                 cursor.getString(cursor.getColumnIndexOrThrow("username")),
                 cursor.getString(cursor.getColumnIndexOrThrow("password")),
                 cursor.getString(cursor.getColumnIndexOrThrow("email")),
-                cursor.getString(cursor.getColumnIndexOrThrow("number"))
+                cursor.getString(cursor.getColumnIndexOrThrow("number")),
+                cursor.getInt(cursor.getColumnIndexOrThrow("isAdmin"))  // Retrieve isAdmin value
             )
         }
         return null
@@ -81,6 +83,32 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "UserDB", nul
         cursor.close()
         return null
     }
+
+    // Add admin account if it doesn't already exist
+    fun addAdminAccount() {
+        val db = this.writableDatabase
+        // Check if the admin account already exists
+        val query = "SELECT * FROM users WHERE username = ?"
+        val cursor = db.rawQuery(query, arrayOf("admin"))
+
+        if (cursor.count == 0) {  // If admin doesn't exist, insert it
+            val values = ContentValues()
+            values.put("username", "admin")
+            values.put("password", "admin123")  // Default password for the admin (you should hash it in a real app)
+            values.put("email", "admin@example.com")  // Admin email
+            values.put("isAdmin", 1)  // 1 indicates admin
+            db.insert("users", null, values)
+        }
+        cursor.close()
+    }
 }
 
-data class User(val id: Int, val username: String, val password: String, val email: String, val number: String)
+// User data class with added 'isAdmin' field
+data class User(
+    val id: Int,
+    val username: String,
+    val password: String,
+    val email: String,
+    val number: String,
+    val isAdmin: Int  // 0 for regular user, 1 for admin
+)

@@ -1,6 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.crud2">
+
+    <!-- Permissions for Internet and Location Access -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -10,7 +14,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
-        <!-- Main Activity (entry point of the app) -->
+        <!-- Meta-data for Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+
+        <!-- Activities -->
+        <activity
+            android:name=".Dashboard"
+            android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -20,28 +33,22 @@
             </intent-filter>
         </activity>
 
-
-        <!-- Register Activity -->
         <activity
             android:name=".Register"
             android:exported="true" />
 
-        <!-- Login Activity -->
         <activity
             android:name=".Login"
-            android:exported="true" /> <!-- Login Activity -->
+            android:exported="true" />
 
-        <!-- Home Activity (after successful login) -->
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
 
-        <!-- Verification Activity -->
         <activity
             android:name=".Verification"
             android:exported="false" />
 
-        <!-- Other Activities -->
         <activity
             android:name=".NumberPage"
             android:exported="false" />

@@ -27,17 +27,24 @@ class Login : AppCompatActivity() {
             val username = usernameEditText.text.toString().trim()
             val password = passwordEditText.text.toString().trim()
 
-            // Get the user's number by username
-            val userNumber = db.getUserNumber(username)
-            if (userNumber != null) {
-                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
-                // Proceed to next activity
-                val intent = Intent(this, NumberPage::class.java)
-                intent.putExtra("username", username) // Pass the username
-                intent.putExtra("userNumber", userNumber) // Pass the user number
+            // Check if the user is admin
+            if (username == "admin" && password == "admin123") {
+                Toast.makeText(this, "Admin login successful", Toast.LENGTH_SHORT).show()
+                // Redirect to Admin Dashboard
+                val intent = Intent(this, Dashboard::class.java)
                 startActivity(intent)
             } else {
-                Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+                // Normal user login check
+                val userNumber = db.getUserNumber(username)
+                if (userNumber != null) {
+                    Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(this, NumberPage::class.java)
+                    intent.putExtra("username", username)
+                    intent.putExtra("userNumber", userNumber)
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
