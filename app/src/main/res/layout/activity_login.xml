@@ -34,7 +34,7 @@
         android:layout_width="302dp"
         android:layout_height="55dp"
         android:layout_marginTop="40dp"
-        android:background="@android:drawable/edit_text"
+        android:background="@drawable/rounded_button"
         android:hint="Username"
         android:inputType="textPersonName"
         android:padding="10dp"
@@ -50,7 +50,7 @@
         android:layout_width="303dp"
         android:layout_height="52dp"
         android:layout_marginTop="16dp"
-        android:background="@android:drawable/edit_text"
+        android:background="@drawable/rounded_button"
         android:hint="Password"
         android:inputType="textPassword"
         android:padding="10dp"
@@ -65,6 +65,7 @@
         android:id="@+id/register"
         android:layout_width="wrap_content"
         android:layout_height="48dp"
+        android:layout_marginTop="16dp"
         android:clickable="true"
         android:focusable="true"
         android:text="Don't have an account? Register"
@@ -75,18 +76,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/password"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintVertical_bias="0.287" />
 
     <Button
         android:id="@+id/loginButton"
         android:layout_width="252dp"
         android:layout_height="55dp"
-        android:text="Login"
-        app:layout_constraintTop_toBottomOf="@id/register"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/rounded_button"
         android:backgroundTint="#ffffff"
+        android:text="Login"
         android:textColor="#000000"
-        android:textSize="25sp" />
+        android:textSize="25sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/register" />
 </androidx.constraintlayout.widget.ConstraintLayout>
