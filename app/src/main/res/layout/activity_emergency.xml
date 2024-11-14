@@ -1,14 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ContactActivity"
+    tools:context=".EmergencyActivity"
     android:background="@drawable/background_gradient">
 
-    <!-- Header Section -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -32,10 +30,10 @@
 
         <TextView
             android:id="@+id/textView4"
-            android:layout_width="177dp"
-            android:layout_height="33dp"
+            android:layout_width="233dp"
+            android:layout_height="35dp"
             android:layout_marginTop="8dp"
-            android:text="Home Page"
+            android:text="Emergency hotline"
             android:textColor="@color/black"
             android:textSize="25sp"
             android:textStyle="bold"
@@ -53,79 +51,72 @@
             android:textStyle="italic"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/headerImage"
+            app:layout_constraintHorizontal_bias="0.277"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/textView4" />
+            app:layout_constraintTop_toBottomOf="@+id/textView4"
+            app:layout_constraintVertical_bias="1.0" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/contactSearchBar"
-        android:layout_width="256dp"
-        android:layout_height="54dp"
-        android:layout_marginTop="40dp"
-        android:queryHint="Search contact"
-        android:background="@drawable/rounded_button"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.586"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header" />
-
-
-    <androidx.cardview.widget.CardView
-        android:id="@+id/recentContactsCard"
-        android:layout_width="342dp"
-        android:layout_height="66dp"
-        android:layout_marginTop="44dp"
-        android:elevation="8dp"
-        app:cardCornerRadius="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.623"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/contactSearchBar">
-
-        <!-- Content inside the Recent Contacts Card -->
-        <TextView
-            android:id="@+id/recentContactsText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:text="Recent Contacts"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-    </androidx.cardview.widget.CardView>
-
-    <androidx.cardview.widget.CardView
-        android:id="@+id/allContactsCard"
-        android:layout_width="328dp"
-        android:layout_height="224dp"
-        android:layout_marginTop="32dp"
-        android:elevation="8dp"
-        app:cardCornerRadius="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.623"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/recentContactsCard">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/contactsRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:scrollbars="vertical" />
-    </androidx.cardview.widget.CardView>
-
     <ImageButton
-        android:id="@+id/imageButton"
-        android:layout_width="98dp"
-        android:layout_height="32dp"
-        android:layout_marginTop="28dp"
+        android:id="@+id/police"
+        android:layout_width="145dp"
+        android:layout_height="117dp"
+        android:layout_marginBottom="44dp"
         android:background="@drawable/rounded_button"
         android:scaleType="fitCenter"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.901"
+        app:layout_constraintBottom_toTopOf="@+id/firestation"
+        app:layout_constraintEnd_toStartOf="@+id/ambulance"
+        app:layout_constraintHorizontal_bias="0.435"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/allContactsCard"
-        app:srcCompat="@drawable/add" />
+        app:srcCompat="@drawable/police" />
+
+    <ImageButton
+        android:id="@+id/ambulance"
+        android:layout_width="145dp"
+        android:layout_height="117dp"
+        android:layout_marginEnd="36dp"
+        android:layout_marginBottom="44dp"
+        android:background="@drawable/rounded_button"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toTopOf="@+id/risk"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/ambulance" />
+
+    <ImageButton
+        android:id="@+id/firestation"
+        android:layout_width="145dp"
+        android:layout_height="117dp"
+        android:layout_marginBottom="156dp"
+        android:background="@drawable/rounded_button"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/risk"
+        app:layout_constraintHorizontal_bias="0.435"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/firestation" />
+
+    <ImageButton
+        android:id="@+id/risk"
+        android:layout_width="145dp"
+        android:layout_height="117dp"
+        android:layout_marginEnd="36dp"
+        android:layout_marginBottom="156dp"
+        android:background="@drawable/rounded_button"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/riskreduction" />
+
+    <ImageView
+        android:id="@+id/imageView6"
+        android:layout_width="303dp"
+        android:layout_height="111dp"
+        android:layout_marginTop="32dp"
+        android:scaleType="fitXY"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/header"
+        app:srcCompat="@drawable/bus" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

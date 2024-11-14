@@ -14,9 +14,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
         <activity
-            android:name=".ContactActivity"
+            android:name=".BraceletActivity"
             android:exported="false" />
-        <!-- Meta-data for Google Maps API Key -->
+        <activity
+            android:name=".EmergencyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ContactActivity"
+            android:exported="false" /> <!-- Meta-data for Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" /> <!-- Activities -->
@@ -38,9 +43,6 @@
         <activity
             android:name=".Login"
             android:exported="true" />
-        <activity
-            android:name=".HomeActivity"
-            android:exported="false" />
         <activity
             android:name=".Verification"
             android:exported="false" />

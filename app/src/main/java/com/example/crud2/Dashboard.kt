@@ -24,9 +24,24 @@ class Dashboard : AppCompatActivity() {
         // Set up the button to navigate to ContactActivity
         val contactButton = findViewById<Button>(R.id.contact)
         contactButton.setOnClickListener {
-            // Create an Intent to navigate to ContactActivity
             val intent = Intent(this, ContactActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Set up the button to navigate to BraceletActivity
+        val braceletButton = findViewById<Button>(R.id.button6)
+        braceletButton.setOnClickListener {
+            val intent = Intent(this, BraceletActivity::class.java)
+            startActivity(intent)
+        }
+
+
+        // Set up the button to navigate to EmergencyActivity
+        val emergencyButton = findViewById<Button>(R.id.emergency)
+        emergencyButton.setOnClickListener {
+            val intent = Intent(this, EmergencyActivity::class.java)
             startActivity(intent)
         }
     }
 }
+
