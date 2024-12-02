@@ -30,12 +30,13 @@ class Verification : AppCompatActivity() {
         otpDigit5 = findViewById(R.id.otpDigit5)
 
         verifyButton.setOnClickListener {
-            val enteredOtp = "$otpDigit1$otpDigit2$otpDigit3$otpDigit4$otpDigit5".trim()
+            // Concatenate the OTP digits entered by the user
+            val enteredOtp = otpDigit1.text.toString() + otpDigit2.text.toString() +
+                    otpDigit3.text.toString() + otpDigit4.text.toString() + otpDigit5.text.toString()
 
-            // Perform verification logic here (e.g., check if the OTP matches the expected value)
+            // Perform verification logic here (check if OTP matches the default "54321")
             if (enteredOtp.isNotEmpty()) {
-                // For demonstration, we'll just check if the OTP is correct
-                if (enteredOtp == "12345") {
+                if (enteredOtp == "54321") {
                     Toast.makeText(this, "Verification successful", Toast.LENGTH_SHORT).show()
                     // Proceed to the Login activity
                     val intent = Intent(this, Login::class.java)

@@ -1,52 +1,97 @@
 package com.example.crud2
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class NumberPage : AppCompatActivity() {
+
+    private lateinit var usernameTextView: TextView
+    private lateinit var userNumberTextView: TextView
     private lateinit var nextButton: Button
-    private lateinit var numberEditText: EditText
-    private lateinit var db: DatabaseHelper
+    private lateinit var numberTextBox: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_number_page)
 
-        db = DatabaseHelper(this)
-
+        // Initialize the views
+        usernameTextView = findViewById(R.id.usernameTextView)
+        userNumberTextView = findViewById(R.id.userNumberTextView)
         nextButton = findViewById(R.id.next)
-        numberEditText = findViewById(R.id.numberTextBox)
+        numberTextBox = findViewById(R.id.numberTextBox)
 
-        // Retrieve the previously stored number (if any)
-        val username = intent.getStringExtra("username")
-        if (username != null) {
-            val storedNumber = db.getUserNumber(username)
-            if (storedNumber != null) {
-                numberEditText.setText(storedNumber)
-            }
-        }
+        // Retrieve the username and phone number from the intent
+        val username = intent.getStringExtra("EXTRA_USERNAME")
+        val phone = intent.getStringExtra("EXTRA_PHONE")
 
+        // Set the values to the TextViews
+        usernameTextView.text = username ?: "Username not available"
+        userNumberTextView.text = phone ?: "Phone number not available"
+
+        // Handle "Next" button click
         nextButton.setOnClickListener {
-            val enteredNumber = numberEditText.text.toString().trim()
+            val enteredPhone = numberTextBox.text.toString()
 
-            // Validate the entered number
-            if (enteredNumber.isNotEmpty() && enteredNumber.matches(Regex("[0-9]+"))) {
-                // Store the number in the database
-                if (username != null) {
-                    db.updateUserNumber(username, enteredNumber)
-                    Toast.makeText(this, "Number updated successfully", Toast.LENGTH_SHORT).show()
+            // Validate the phone number entered
+            if (enteredPhone.isNotEmpty()) {
+                // Send SMS with the OTP
+                sendOtp(enteredPhone)
+
+                // Proceed to the verification page
+                val intent = Intent(this, Verification::class.java).apply {
+                    putExtra("EXTRA_PHONE", enteredPhone)
                 }
-
-                // Navigate to the next activity
-                val intent = Intent(this, Verification::class.java)
-                intent.putExtra("number", enteredNumber) // Pass the entered number
                 startActivity(intent)
             } else {
-                Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                // Show a toast if the number is empty
+                Toast.makeText(this, "Please enter a valid phone number", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Function to send OTP via SMS
+    private fun sendOtp(phoneNumber: String) {
+        val otp = "54321" // Example OTP, you can generate a random one
+        val message = "Your OTP code is: $otp"
+
+        // Check if permission is granted
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                // Send the SMS
+                SmsManager.getDefault().sendTextMessage(phoneNumber, null, message, null, null)
+                Toast.makeText(this, "OTP sent to $phoneNumber", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Failed to send OTP", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
+        } else {
+            // Request permission if not granted
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), 1)
+        }
+    }
+
+    // Handle runtime permission result
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 1) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, proceed with sending SMS
+                val phoneNumber = numberTextBox.text.toString()
+                sendOtp(phoneNumber)
+            } else {
+                // Permission denied, show a message
+                Toast.makeText(this, "SMS permission is required to send OTP", Toast.LENGTH_SHORT).show()
             }
         }
     }
