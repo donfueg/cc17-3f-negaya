@@ -46,8 +46,9 @@ class Login : AppCompatActivity() {
             if (dbHelper.validateUserByUsernameAndPassword(username, hashedPassword)) {
                 Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
 
-                // Redirect to another page (e.g., main dashboard)
+                // Redirect to the dashboard and pass the username
                 val intent = Intent(this, Dashboard::class.java)
+                intent.putExtra("EXTRA_USERNAME", username) // Pass the username
                 startActivity(intent)
                 finish()  // Close the login activity
             } else {

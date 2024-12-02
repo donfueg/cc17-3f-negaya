@@ -31,6 +31,7 @@ class Register : AppCompatActivity() {
         registerButton = findViewById(R.id.button)
         loginTextView = findViewById(R.id.login)
 
+        // Initialize DatabaseHelper
         dbHelper = DatabaseHelper(this)
 
         // Handle register button click
@@ -51,10 +52,10 @@ class Register : AppCompatActivity() {
                 if (result != -1L) { // Success
                     // Pass username to the Verification activity
                     val intent = Intent(this, Verification::class.java).apply {
-                        putExtra("EXTRA_USERNAME", username) // You can pass additional data like the username if needed
+                        putExtra("EXTRA_USERNAME", username) // Pass username
                     }
                     startActivity(intent)
-                    finish() // Close the register screen so user can't navigate back
+                    finish() // Close the register screen
                 } else {
                     // Show failure message
                     Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
@@ -65,7 +66,7 @@ class Register : AppCompatActivity() {
             }
         }
 
-        // Redirect to login if the user already has an account
+        // Redirect to login if user already has an account
         loginTextView.setOnClickListener {
             val intent = Intent(this, Login::class.java)
             startActivity(intent)

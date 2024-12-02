@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class ContactAdapter(private var contacts: List<Contact>) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>() {
+class ContactAdapter(private var contactList: List<Contact>) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_contact, parent, false)
@@ -14,17 +14,18 @@ class ContactAdapter(private var contacts: List<Contact>) : RecyclerView.Adapter
     }
 
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
-        val contact = contacts[position]
+        val contact = contactList[position]
         holder.nameTextView.text = contact.name
         holder.phoneTextView.text = contact.phoneNumber
     }
 
-    override fun getItemCount(): Int = contacts.size
+    override fun getItemCount(): Int {
+        return contactList.size
+    }
 
-    // Update the contact list and notify adapter
     fun updateContacts(newContacts: List<Contact>) {
-        contacts = newContacts
-        notifyDataSetChanged() // Refresh the RecyclerView
+        contactList = newContacts
+        notifyDataSetChanged()
     }
 
     inner class ContactViewHolder(view: View) : RecyclerView.ViewHolder(view) {

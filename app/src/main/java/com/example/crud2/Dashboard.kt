@@ -10,6 +10,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class Dashboard : AppCompatActivity() {
+
     private lateinit var usernameTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,7 +21,7 @@ class Dashboard : AppCompatActivity() {
         // Initialize the TextView
         usernameTextView = findViewById(R.id.textView5)
 
-        // Retrieve the username passed from Register activity
+        // Retrieve the username passed from Login activity
         val username = intent.getStringExtra("EXTRA_USERNAME")
 
         // Set the username in the TextView (e.g., "Hello username")

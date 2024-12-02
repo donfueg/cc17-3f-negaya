@@ -9,30 +9,47 @@ import android.database.sqlite.SQLiteOpenHelper
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_NAME = "userDatabase"
+        private const val DATABASE_NAME = "appDatabase"
         private const val DATABASE_VERSION = 1
-        private const val TABLE_NAME = "users"
+
+        // User table
+        private const val TABLE_USERS = "users"
         private const val COLUMN_USERNAME = "username"
         private const val COLUMN_PASSWORD = "password"
         private const val COLUMN_EMAIL = "email"
         private const val COLUMN_PHONE = "phone"
+
+        // Contact table
+        private const val TABLE_CONTACTS = "contacts"
+        private const val COLUMN_CONTACT_ID = "id"
+        private const val COLUMN_CONTACT_NAME = "name"
+        private const val COLUMN_CONTACT_PHONE = "phone"
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
-        val createTableQuery = "CREATE TABLE $TABLE_NAME (" +
+        // Create User table
+        val createUserTableQuery = "CREATE TABLE $TABLE_USERS (" +
                 "$COLUMN_USERNAME TEXT PRIMARY KEY, " +
                 "$COLUMN_PASSWORD TEXT, " +
                 "$COLUMN_EMAIL TEXT, " +
                 "$COLUMN_PHONE TEXT)"
-        db?.execSQL(createTableQuery)
+        db?.execSQL(createUserTableQuery)
+
+        // Create Contact table
+        val createContactTableQuery = "CREATE TABLE $TABLE_CONTACTS (" +
+                "$COLUMN_CONTACT_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "$COLUMN_CONTACT_NAME TEXT NOT NULL, " +
+                "$COLUMN_CONTACT_PHONE TEXT NOT NULL)"
+        db?.execSQL(createContactTableQuery)
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_CONTACTS")
         onCreate(db)
     }
 
-    // Insert user into the database
+    // Method to insert a user into the users table
     fun insertUser(username: String, password: String, email: String, phone: String): Long {
         val db = this.writableDatabase
         val values = ContentValues().apply {
@@ -41,43 +58,48 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             put(COLUMN_EMAIL, email)
             put(COLUMN_PHONE, phone)
         }
-        return db.insert(TABLE_NAME, null, values)
+        return db.insert(TABLE_USERS, null, values)
     }
 
-    // Validate user by username and password
+    // Method to validate a user by username and password
     fun validateUserByUsernameAndPassword(username: String, password: String): Boolean {
         val db = this.readableDatabase
         val cursor: Cursor = db.rawQuery(
-            "SELECT * FROM $TABLE_NAME WHERE $COLUMN_USERNAME = ? AND $COLUMN_PASSWORD = ?",
+            "SELECT * FROM $TABLE_USERS WHERE $COLUMN_USERNAME = ? AND $COLUMN_PASSWORD = ?",
             arrayOf(username, password)
         )
 
-        return cursor.count > 0  // If cursor count is greater than 0, the user exists
-    }
-
-    // Method to retrieve the phone number by username
-    fun getUserPhoneNumber(username: String): String? {
-        val db = this.readableDatabase
-        val cursor: Cursor = db.rawQuery(
-            "SELECT $COLUMN_PHONE FROM $TABLE_NAME WHERE $COLUMN_USERNAME = ?",
-            arrayOf(username)
-        )
-
-        var phoneNumber: String? = null
-        if (cursor.moveToFirst()) {
-            phoneNumber = cursor.getString(cursor.getColumnIndex(COLUMN_PHONE))
-        }
+        val userExists = cursor.count > 0
         cursor.close()
-        return phoneNumber
+        return userExists
     }
 
-    // Method to update the user's phone number
-    fun updateUserPhoneNumber(username: String, newPhoneNumber: String): Int {
+    // Methods for managing contacts
+    fun addContact(name: String, phone: String): Long {
         val db = this.writableDatabase
         val values = ContentValues().apply {
-            put(COLUMN_PHONE, newPhoneNumber)
+            put(COLUMN_CONTACT_NAME, name)
+            put(COLUMN_CONTACT_PHONE, phone)
         }
+        return db.insert(TABLE_CONTACTS, null, values)
+    }
 
-        return db.update(TABLE_NAME, values, "$COLUMN_USERNAME = ?", arrayOf(username))
+    fun getAllContacts(): MutableList<Contact> {
+        val contactList = mutableListOf<Contact>()
+        val db = this.readableDatabase
+        val cursor: Cursor = db.rawQuery("SELECT * FROM $TABLE_CONTACTS", null)
+
+        while (cursor.moveToNext()) {
+            val name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTACT_NAME))
+            val phone = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTACT_PHONE))
+            contactList.add(Contact(name, phone))
+        }
+        cursor.close()
+        return contactList
+    }
+
+    fun deleteAllContacts(): Int {
+        val db = this.writableDatabase
+        return db.delete(TABLE_CONTACTS, null, null)
     }
 }
