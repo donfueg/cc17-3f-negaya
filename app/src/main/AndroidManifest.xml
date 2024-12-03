@@ -14,17 +14,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-
+        <activity
+            android:name=".MapActivity"
+            android:exported="false" />
         <!-- SplashActivity as the launcher activity -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"> <!-- Set exported to true for launcher activity -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".SettingsActivity"
             android:exported="false" />
@@ -36,12 +38,10 @@
             android:exported="false" />
         <activity
             android:name=".ContactActivity"
-            android:exported="false" />
-        <!-- Meta-data for Google Maps API Key -->
+            android:exported="false" /> <!-- Meta-data for Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
-        <!-- Other activities -->
+            android:value="@string/google_maps_key" /> <!-- Other activities -->
         <activity
             android:name=".Dashboard"
             android:exported="false" />
@@ -59,9 +59,7 @@
             android:exported="false" />
         <activity
             android:name=".NumberPage"
-            android:exported="false" />
-
-        <!-- Meta data for preloaded fonts (if applicable) -->
+            android:exported="false" /> <!-- Meta data for preloaded fonts (if applicable) -->
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
