@@ -43,22 +43,27 @@ class Register : AppCompatActivity() {
 
             // Validate input fields
             if (email.isNotEmpty() && username.isNotEmpty() && phone.isNotEmpty() && password.isNotEmpty()) {
-                // Hash the password before storing it
-                val hashedPassword = hashPassword(password)
+                if (isPhoneValid(phone)) {
+                    // Hash the password before storing it
+                    val hashedPassword = hashPassword(password)
 
-                // Insert the user into the database
-                val result = dbHelper.insertUser(username, hashedPassword, email, phone)
+                    // Insert the user into the database
+                    val result = dbHelper.insertUser(username, hashedPassword, email, phone)
 
-                if (result != -1L) { // Success
-                    // Pass username to the Verification activity
-                    val intent = Intent(this, Verification::class.java).apply {
-                        putExtra("EXTRA_USERNAME", username) // Pass username
+                    if (result != -1L) { // Success
+                        // Pass username to the Verification activity
+                        val intent = Intent(this, Verification::class.java).apply {
+                            putExtra("EXTRA_USERNAME", username) // Pass username
+                        }
+                        startActivity(intent)
+                        finish() // Close the register screen
+                    } else {
+                        // Show failure message
+                        Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
                     }
-                    startActivity(intent)
-                    finish() // Close the register screen
                 } else {
-                    // Show failure message
-                    Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
+                    // Show error message for invalid phone number
+                    Toast.makeText(this, "Invalid phone number. Please enter numbers only.", Toast.LENGTH_SHORT).show()
                 }
             } else {
                 // Show error message for empty fields
@@ -82,5 +87,10 @@ class Register : AppCompatActivity() {
             sb.append(String.format("%02x", b))
         }
         return sb.toString()
+    }
+
+    // Function to validate the phone number
+    private fun isPhoneValid(phone: String): Boolean {
+        return phone.matches(Regex("^[0-9]+$")) // Regex checks if the phone contains only digits
     }
 }

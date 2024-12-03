@@ -21,17 +21,12 @@ class SettingsActivity : AppCompatActivity() {
         val darkThemeRadioButton = findViewById<RadioButton>(R.id.darkThemeRadioButton)
         val logoutButton = findViewById<Button>(R.id.logoutButton)
 
-        // Retrieve the username passed from DashboardActivity
-        val username = intent.getStringExtra("EXTRA_USERNAME")
-
-        if (username != null && username.isNotEmpty()) {
-            profileNameTextView.text = "Username: $username"  // Display the username dynamically
-        } else {
-            profileNameTextView.text = "Username: Guest"  // Fallback
-        }
+        // Retrieve the username from SharedPreferences
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val username = sharedPreferences.getString("username", "Guest")
+        profileNameTextView.text = "Username: $username"
 
         // Set default theme based on saved preferences (if any)
-        val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
         val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
         if (isDarkTheme) {
             darkThemeRadioButton.isChecked = true
@@ -41,37 +36,29 @@ class SettingsActivity : AppCompatActivity() {
 
         // Theme selection handling
         lightThemeRadioButton.setOnClickListener {
-            setTheme(R.style.LightTheme)  // Assuming LightTheme is defined in styles.xml
             saveThemePreference(false)
         }
 
         darkThemeRadioButton.setOnClickListener {
-            setTheme(R.style.DarkTheme)  // Assuming DarkTheme is defined in styles.xml
             saveThemePreference(true)
         }
 
         // Notifications toggle handling
         notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                // Enable notifications logic
-            } else {
-                // Disable notifications logic
-            }
+            // Handle enabling/disabling notifications logic here
         }
 
         // Log out button handling
         logoutButton.setOnClickListener {
             val intent = Intent(this, Login::class.java)
             startActivity(intent)
-            finish()  // Finish SettingsActivity to go back to LoginActivity
+            finish() // Finish SettingsActivity to prevent returning to it
         }
     }
 
     // Save theme preference in SharedPreferences
     private fun saveThemePreference(isDarkTheme: Boolean) {
-        val sharedPreferences = getSharedPreferences("app_preferences", MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putBoolean("dark_theme", isDarkTheme)
-        editor.apply()
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        sharedPreferences.edit().putBoolean("dark_theme", isDarkTheme).apply()
     }
 }

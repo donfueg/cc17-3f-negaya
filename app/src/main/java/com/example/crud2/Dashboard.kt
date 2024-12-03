@@ -23,14 +23,14 @@ class Dashboard : AppCompatActivity() {
         usernameTextView = findViewById(R.id.textView5)
 
         // Retrieve the username passed from Login activity
-        val username = intent.getStringExtra("EXTRA_USERNAME")
+        val username = intent.getStringExtra("EXTRA_USERNAME") ?: "Guest"
 
-        // Set the username in the TextView (e.g., "Hello username")
-        if (username != null) {
-            usernameTextView.text = "Hello $username"
-        } else {
-            usernameTextView.text = "Hello Guest"
-        }
+        // Save the username in SharedPreferences
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        sharedPreferences.edit().putString("username", username).apply()
+
+        // Set the username in the TextView
+        usernameTextView.text = "Hello $username"
 
         // Handling Edge-to-Edge for padding
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -40,24 +40,18 @@ class Dashboard : AppCompatActivity() {
         }
 
         // Set up the button to navigate to ContactActivity
-        val contactButton = findViewById<Button>(R.id.contact)
-        contactButton.setOnClickListener {
-            val intent = Intent(this, ContactActivity::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.contact).setOnClickListener {
+            startActivity(Intent(this, ContactActivity::class.java))
         }
 
         // Set up the button to navigate to BraceletActivity
-        val braceletButton = findViewById<Button>(R.id.button6)
-        braceletButton.setOnClickListener {
-            val intent = Intent(this, BraceletActivity::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.button6).setOnClickListener {
+            startActivity(Intent(this, BraceletActivity::class.java))
         }
 
         // Set up the button to navigate to EmergencyActivity
-        val emergencyButton = findViewById<Button>(R.id.emergency)
-        emergencyButton.setOnClickListener {
-            val intent = Intent(this, EmergencyActivity::class.java)
-            startActivity(intent)
+        findViewById<Button>(R.id.emergency).setOnClickListener {
+            startActivity(Intent(this, EmergencyActivity::class.java))
         }
 
         // Set up Bottom Navigation
@@ -65,23 +59,16 @@ class Dashboard : AppCompatActivity() {
         bottomNavigationView.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    // Navigate to Dashboard
-                    val intent = Intent(this, Dashboard::class.java)
-                    startActivity(intent)
-                    return@setOnNavigationItemSelectedListener true
+                    startActivity(Intent(this, Dashboard::class.java))
+                    true
                 }
                 R.id.nav_emergency -> {
-                    // Navigate to Emergency Activity
-                    val intent = Intent(this, EmergencyActivity::class.java)
-                    startActivity(intent)
-                    return@setOnNavigationItemSelectedListener true
+                    startActivity(Intent(this, EmergencyActivity::class.java))
+                    true
                 }
                 R.id.nav_settings -> {
-                    // Navigate to Settings Activity and pass the username
-                    val intent = Intent(this, SettingsActivity::class.java)
-                    intent.putExtra("EXTRA_USERNAME", username) // Pass the username to SettingsActivity
-                    startActivity(intent)
-                    return@setOnNavigationItemSelectedListener true
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                    true
                 }
                 else -> false
             }
