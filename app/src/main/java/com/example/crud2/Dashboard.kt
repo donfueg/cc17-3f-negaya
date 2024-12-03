@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class Dashboard : AppCompatActivity() {
 
@@ -18,14 +19,18 @@ class Dashboard : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_dashboard)
 
-        // Initialize the TextView
+        // Initialize the TextView for displaying username
         usernameTextView = findViewById(R.id.textView5)
 
         // Retrieve the username passed from Login activity
         val username = intent.getStringExtra("EXTRA_USERNAME")
 
         // Set the username in the TextView (e.g., "Hello username")
-        usernameTextView.text = "Hello $username"
+        if (username != null) {
+            usernameTextView.text = "Hello $username"
+        } else {
+            usernameTextView.text = "Hello Guest"
+        }
 
         // Handling Edge-to-Edge for padding
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -53,6 +58,33 @@ class Dashboard : AppCompatActivity() {
         emergencyButton.setOnClickListener {
             val intent = Intent(this, EmergencyActivity::class.java)
             startActivity(intent)
+        }
+
+        // Set up Bottom Navigation
+        val bottomNavigationView: BottomNavigationView = findViewById(R.id.bottomNavigationView)
+        bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    // Navigate to Dashboard
+                    val intent = Intent(this, Dashboard::class.java)
+                    startActivity(intent)
+                    return@setOnNavigationItemSelectedListener true
+                }
+                R.id.nav_emergency -> {
+                    // Navigate to Emergency Activity
+                    val intent = Intent(this, EmergencyActivity::class.java)
+                    startActivity(intent)
+                    return@setOnNavigationItemSelectedListener true
+                }
+                R.id.nav_settings -> {
+                    // Navigate to Settings Activity and pass the username
+                    val intent = Intent(this, SettingsActivity::class.java)
+                    intent.putExtra("EXTRA_USERNAME", username) // Pass the username to SettingsActivity
+                    startActivity(intent)
+                    return@setOnNavigationItemSelectedListener true
+                }
+                else -> false
+            }
         }
     }
 }

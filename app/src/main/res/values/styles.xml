@@ -1,0 +1,19 @@
+<resources>
+    <!-- Light Theme -->
+    <style name="LightTheme" parent="Theme.AppCompat.Light">
+        <!-- Primary Color -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <!-- Customize text colors, background, etc. -->
+    </style>
+
+    <!-- Dark Theme -->
+    <style name="DarkTheme" parent="Theme.AppCompat">
+        <!-- Primary Color -->
+        <item name="colorPrimary">@color/colorPrimaryDark</item>
+        <item name="colorPrimaryDark">@color/colorPrimary</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <!-- Customize text colors, background, etc. -->
+    </style>
+</resources>

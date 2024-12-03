@@ -5,4 +5,5 @@
     <string name="title_notifications">Notifications</string>
     <string name="emergency_button_desc">Emergency Call Button</string>
     <string name="google_maps_key">AIzaSyChMvW8HwNg78vQxcKGo6MW1Wi92onEc5w</string>
+    <string name="logo">Logo Description</string>
 </resources>
