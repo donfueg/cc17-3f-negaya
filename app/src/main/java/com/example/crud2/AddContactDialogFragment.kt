@@ -1,14 +1,14 @@
 package com.example.crud2
 
-import android.app.Dialog
+import android.app.AlertDialog
 import android.os.Bundle
-import android.widget.Button
 import android.widget.EditText
+import android.widget.Button
 import androidx.fragment.app.DialogFragment
 
 class AddContactDialogFragment(val onAddContact: (Contact) -> Unit) : DialogFragment() {
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+    override fun onCreateDialog(savedInstanceState: Bundle?): AlertDialog {
         // Inflate the layout for the dialog
         val dialogView = requireActivity().layoutInflater.inflate(R.layout.dialog_add_contact, null)
 
@@ -29,8 +29,11 @@ class AddContactDialogFragment(val onAddContact: (Contact) -> Unit) : DialogFrag
             }
         }
 
-        return Dialog(requireActivity()).apply {
-            setContentView(dialogView)
-        }
+        // Use AlertDialog.Builder to construct the dialog
+        return AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setTitle("Add New Contact")
+            .setCancelable(true)
+            .create()
     }
 }

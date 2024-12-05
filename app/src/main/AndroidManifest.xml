@@ -2,10 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.crud2">
     <!-- Permissions for Internet and Location Access -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
 
     <application
         android:allowBackup="true"
@@ -15,9 +21,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
         <activity
-            android:name=".MapActivity"
+            android:name=".Map"
             android:exported="false" />
-        <!-- SplashActivity as the launcher activity -->
+        <activity
+            android:name=".MapActivity"
+            android:exported="false" /> <!-- SplashActivity as the launcher activity -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"> <!-- Set exported to true for launcher activity -->
@@ -41,7 +49,7 @@
             android:exported="false" /> <!-- Meta-data for Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" /> <!-- Other activities -->
+            android:value="@string/AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI" /> <!-- Other activities -->
         <activity
             android:name=".Dashboard"
             android:exported="false" />

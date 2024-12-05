@@ -60,6 +60,14 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         }
         return db.insert(TABLE_USERS, null, values)
     }
+// Method to delete a contact by phone number
+    fun deleteContactByPhone(phone: String): Int {
+        val db = this.writableDatabase
+        val selection = "$COLUMN_CONTACT_PHONE = ?"
+        val selectionArgs = arrayOf(phone)
+        return db.delete(TABLE_CONTACTS, selection, selectionArgs)
+    }
+
 
     // Method to validate a user by username and password
     fun validateUserByUsernameAndPassword(username: String, password: String): Boolean {

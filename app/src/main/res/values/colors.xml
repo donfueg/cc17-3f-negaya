@@ -15,5 +15,10 @@
     <color name="secondaryTextColor">#757575</color>
     <color name="primaryTextColor">#000000</color>
     <color name="dividerColor">#E0E0E0</color>
-
+    <color name="background_color">#1E1E1E</color> <!-- Dark Gray -->
+    <color name="title_color">#9B4F96</color> <!-- Neon Purple -->
+    <color name="button_color">#4D6FEB</color> <!-- Neon Blue -->
+    <color name="button_text_color">#FFFFFF</color> <!-- White Text -->
+    <color name="card_background">#2C2C2C</color> <!-- Dark Card Background -->
+    <color name="card_elevation">#000000</color> <!-- Dark Elevation -->
 </resources>

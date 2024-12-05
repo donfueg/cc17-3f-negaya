@@ -55,7 +55,8 @@ dependencies {
 
     // Google Maps dependency
     implementation(libs.play.services.maps)
-    implementation(libs.play.services.location)  // If using version catalog
+    implementation(libs.play.services.location)
+    implementation(libs.places)  // If using version catalog
 
     // Alternatively, you can use this direct dependency if not using version catalog
     // implementation 'com.google.android.gms:play-services-maps:17.0.1'

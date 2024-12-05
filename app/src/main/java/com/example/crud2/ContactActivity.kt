@@ -1,5 +1,7 @@
 package com.example.crud2
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
@@ -7,7 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.SearchView
 
-class ContactActivity : AppCompatActivity() {
+class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListener {
 
     private lateinit var contactsRecyclerView: RecyclerView
     private lateinit var contactAdapter: ContactAdapter
@@ -28,8 +30,15 @@ class ContactActivity : AppCompatActivity() {
         // Load existing contacts from the database
         contactList = dbHelper.getAllContacts().toMutableList()
 
-        // Set up adapter
-        contactAdapter = ContactAdapter(contactList)
+        // Set up adapter and pass the listener to it
+        contactAdapter = ContactAdapter(contactList, this) { contact ->
+            // Delete the contact from the list and update RecyclerView
+            contactList.remove(contact)
+            contactAdapter.notifyDataSetChanged()
+
+            // Delete the contact from the database
+            dbHelper.deleteContactByPhone(contact.name)  // Call delete by name
+        }
         contactsRecyclerView.adapter = contactAdapter
 
         // Add contact button
@@ -70,5 +79,17 @@ class ContactActivity : AppCompatActivity() {
             }
         }
         contactAdapter.updateContacts(filteredList)
+    }
+
+    // Method to make a phone call
+    private fun makePhoneCall(phoneNumber: String) {
+        val intent = Intent(Intent.ACTION_DIAL)
+        intent.data = Uri.parse("tel:$phoneNumber")
+        startActivity(intent)
+    }
+
+    // Implement the onContactClick method from the listener
+    override fun onContactClick(phoneNumber: String) {
+        makePhoneCall(phoneNumber)  // Initiate the phone call
     }
 }
