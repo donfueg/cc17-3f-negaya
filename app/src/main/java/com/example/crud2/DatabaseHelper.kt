@@ -1,113 +1,142 @@
 package com.example.crud2
 
-import android.content.ContentValues
 import android.content.Context
-import android.database.Cursor
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
-class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+class FirebaseHelper(context: Context) {
 
-    companion object {
-        private const val DATABASE_NAME = "appDatabase"
-        private const val DATABASE_VERSION = 1
+    private val db = Firebase.firestore
+    private val auth = FirebaseAuth.getInstance()
 
-        // User table
-        private const val TABLE_USERS = "users"
-        private const val COLUMN_USERNAME = "username"
-        private const val COLUMN_PASSWORD = "password"
-        private const val COLUMN_EMAIL = "email"
-        private const val COLUMN_PHONE = "phone"
+    // Firebase collections
+    private val usersCollection = db.collection("users")
+    private val contactsCollection = db.collection("contacts")
 
-        // Contact table
-        private const val TABLE_CONTACTS = "contacts"
-        private const val COLUMN_CONTACT_ID = "id"
-        private const val COLUMN_CONTACT_NAME = "name"
-        private const val COLUMN_CONTACT_PHONE = "phone"
-    }
-
-    override fun onCreate(db: SQLiteDatabase?) {
-        // Create User table
-        val createUserTableQuery = "CREATE TABLE $TABLE_USERS (" +
-                "$COLUMN_USERNAME TEXT PRIMARY KEY, " +
-                "$COLUMN_PASSWORD TEXT, " +
-                "$COLUMN_EMAIL TEXT, " +
-                "$COLUMN_PHONE TEXT)"
-        db?.execSQL(createUserTableQuery)
-
-        // Create Contact table
-        val createContactTableQuery = "CREATE TABLE $TABLE_CONTACTS (" +
-                "$COLUMN_CONTACT_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "$COLUMN_CONTACT_NAME TEXT NOT NULL, " +
-                "$COLUMN_CONTACT_PHONE TEXT NOT NULL)"
-        db?.execSQL(createContactTableQuery)
-    }
-
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_CONTACTS")
-        onCreate(db)
-    }
-
-    // Method to insert a user into the users table
-    fun insertUser(username: String, password: String, email: String, phone: String): Long {
-        val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_USERNAME, username)
-            put(COLUMN_PASSWORD, password)
-            put(COLUMN_EMAIL, email)
-            put(COLUMN_PHONE, phone)
-        }
-        return db.insert(TABLE_USERS, null, values)
-    }
-// Method to delete a contact by phone number
-    fun deleteContactByPhone(phone: String): Int {
-        val db = this.writableDatabase
-        val selection = "$COLUMN_CONTACT_PHONE = ?"
-        val selectionArgs = arrayOf(phone)
-        return db.delete(TABLE_CONTACTS, selection, selectionArgs)
-    }
-
-
-    // Method to validate a user by username and password
-    fun validateUserByUsernameAndPassword(username: String, password: String): Boolean {
-        val db = this.readableDatabase
-        val cursor: Cursor = db.rawQuery(
-            "SELECT * FROM $TABLE_USERS WHERE $COLUMN_USERNAME = ? AND $COLUMN_PASSWORD = ?",
-            arrayOf(username, password)
+    // Method to add a user to Firestore
+    fun addUser(
+        username: String,
+        password: String,
+        email: String,
+        phone: String,
+        callback: (Boolean) -> Unit
+    ) {
+        val user = hashMapOf(
+            "username" to username,
+            "password" to password,
+            "email" to email,
+            "phone" to phone
         )
 
-        val userExists = cursor.count > 0
-        cursor.close()
-        return userExists
+        // Add a new document with a generated ID
+        usersCollection.add(user)
+            .addOnSuccessListener { documentReference ->
+                println("User added with ID: ${documentReference.id}")
+                callback(true) // Callback with success
+            }
+            .addOnFailureListener { e ->
+                println("Error adding user: $e")
+                callback(false) // Callback with failure
+            }
     }
 
-    // Methods for managing contacts
-    fun addContact(name: String, phone: String): Long {
-        val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_CONTACT_NAME, name)
-            put(COLUMN_CONTACT_PHONE, phone)
-        }
-        return db.insert(TABLE_CONTACTS, null, values)
+    // Method to validate user by username and password
+    fun validateUserByUsernameAndPassword(
+        username: String,
+        password: String,
+        callback: (Boolean) -> Unit
+    ) {
+        usersCollection
+            .whereEqualTo("username", username)
+            .whereEqualTo("password", password)
+            .get()
+            .addOnSuccessListener { result ->
+                if (result.isEmpty) {
+                    callback(false)
+                } else {
+                    callback(true)
+                }
+            }
+            .addOnFailureListener { e ->
+                println("Error getting documents: $e")
+                callback(false)
+            }
     }
 
-    fun getAllContacts(): MutableList<Contact> {
-        val contactList = mutableListOf<Contact>()
-        val db = this.readableDatabase
-        val cursor: Cursor = db.rawQuery("SELECT * FROM $TABLE_CONTACTS", null)
+    // Method to add a contact to Firestore
+    fun addContact(name: String, phone: String) {
+        val contact = hashMapOf(
+            "name" to name,
+            "phone" to phone
+        )
 
-        while (cursor.moveToNext()) {
-            val name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTACT_NAME))
-            val phone = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CONTACT_PHONE))
-            contactList.add(Contact(name, phone))
-        }
-        cursor.close()
-        return contactList
+        // Add a new document with a generated ID
+        contactsCollection.add(contact)
+            .addOnSuccessListener { documentReference ->
+                println("Contact added with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                println("Error adding contact: $e")
+            }
     }
 
-    fun deleteAllContacts(): Int {
-        val db = this.writableDatabase
-        return db.delete(TABLE_CONTACTS, null, null)
+    // Method to get all contacts from Firestore
+    fun getAllContacts(callback: (List<Contact>) -> Unit) {
+        contactsCollection.get()
+            .addOnSuccessListener { result ->
+                val contactList = mutableListOf<Contact>()
+                for (document in result) {
+                    val name = document.getString("name") ?: ""
+                    val phone = document.getString("phone") ?: ""
+                    contactList.add(Contact(name, phone))
+                }
+                callback(contactList)
+            }
+            .addOnFailureListener { e ->
+                println("Error getting contacts: $e")
+            }
+    }
+
+    // Method to delete a contact by phone number
+    fun deleteContactByPhone(phone: String) {
+        contactsCollection
+            .whereEqualTo("phone", phone)
+            .get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    document.reference.delete()
+                        .addOnSuccessListener {
+                            println("Contact deleted")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Error deleting contact: $e")
+                        }
+                }
+            }
+            .addOnFailureListener { e ->
+                println("Error getting contacts: $e")
+            }
+    }
+
+    // Method to delete all contacts
+    fun deleteAllContacts() {
+        contactsCollection
+            .get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    document.reference.delete()
+                        .addOnSuccessListener {
+                            println("Contact deleted")
+                        }
+                        .addOnFailureListener { e ->
+                            println("Error deleting contact: $e")
+                        }
+                }
+            }
+            .addOnFailureListener { e ->
+                println("Error getting contacts: $e")
+            }
     }
 }

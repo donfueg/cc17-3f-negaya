@@ -14,14 +14,14 @@ class Login : AppCompatActivity() {
     private lateinit var passwordEditText: EditText
     private lateinit var loginButton: Button
     private lateinit var registerTextView: TextView
-    private lateinit var dbHelper: DatabaseHelper
+    private lateinit var dbHelper: FirebaseHelper // Use FirebaseHelper instead of DatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
-        // Initialize the DatabaseHelper
-        dbHelper = DatabaseHelper(this)
+        // Initialize FirebaseHelper
+        dbHelper = FirebaseHelper(this)
 
         // Find views
         usernameEditText = findViewById(R.id.username)
@@ -42,17 +42,19 @@ class Login : AppCompatActivity() {
             // Hash the password before checking
             val hashedPassword = hashPassword(password)
 
-            // Validate user
-            if (dbHelper.validateUserByUsernameAndPassword(username, hashedPassword)) {
-                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+            // Validate user with Firebase
+            dbHelper.validateUserByUsernameAndPassword(username, hashedPassword) { isValid ->
+                if (isValid) {
+                    Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
 
-                // Pass the username to DashboardActivity
-                val intent = Intent(this, Dashboard::class.java)
-                intent.putExtra("EXTRA_USERNAME", username) // Pass the username
-                startActivity(intent)
-                finish()  // Close the login activity
-            } else {
-                Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+                    // Pass the username to DashboardActivity
+                    val intent = Intent(this, Dashboard::class.java)
+                    intent.putExtra("EXTRA_USERNAME", username) // Pass the username
+                    startActivity(intent)
+                    finish()  // Close the login activity
+                } else {
+                    Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 

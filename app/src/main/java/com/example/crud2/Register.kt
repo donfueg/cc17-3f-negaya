@@ -7,6 +7,10 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 class Register : AppCompatActivity() {
 
@@ -17,7 +21,7 @@ class Register : AppCompatActivity() {
     private lateinit var registerButton: Button
     private lateinit var loginTextView: TextView
 
-    private lateinit var dbHelper: DatabaseHelper
+    private lateinit var dbHelper: FirebaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,11 +32,11 @@ class Register : AppCompatActivity() {
         usernameEditText = findViewById(R.id.contact)
         phoneEditText = findViewById(R.id.phone)
         passwordEditText = findViewById(R.id.password)
-        registerButton = findViewById(R.id.button)
+        registerButton = findViewById(R.id.register)
         loginTextView = findViewById(R.id.login)
 
         // Initialize DatabaseHelper
-        dbHelper = DatabaseHelper(this)
+        dbHelper = FirebaseHelper(this)
 
         // Handle register button click
         registerButton.setOnClickListener {
@@ -47,19 +51,19 @@ class Register : AppCompatActivity() {
                     // Hash the password before storing it
                     val hashedPassword = hashPassword(password)
 
-                    // Insert the user into the database
-                    val result = dbHelper.insertUser(username, hashedPassword, email, phone)
-
-                    if (result != -1L) { // Success
-                        // Pass username to the Verification activity
-                        val intent = Intent(this, Verification::class.java).apply {
-                            putExtra("EXTRA_USERNAME", username) // Pass username
+                    // Insert the user into the database with callback
+                    dbHelper.addUser(username, hashedPassword, email, phone) { result ->
+                        if (result) { // Success
+                            // Pass username to the Verification activity
+                            val intent = Intent(this, Verification::class.java).apply {
+                                putExtra("EXTRA_USERNAME", username) // Pass username
+                            }
+                            startActivity(intent)
+                            finish() // Close the register screen
+                        } else {
+                            // Show failure message
+                            Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
                         }
-                        startActivity(intent)
-                        finish() // Close the register screen
-                    } else {
-                        // Show failure message
-                        Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     // Show error message for invalid phone number

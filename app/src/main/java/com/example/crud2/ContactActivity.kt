@@ -14,7 +14,7 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
     private lateinit var contactsRecyclerView: RecyclerView
     private lateinit var contactAdapter: ContactAdapter
     private lateinit var contactList: MutableList<Contact>
-    private lateinit var dbHelper: DatabaseHelper
+    private lateinit var dbHelper: FirebaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,22 +24,24 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
         contactsRecyclerView = findViewById(R.id.contactsRecyclerView)
         contactsRecyclerView.layoutManager = LinearLayoutManager(this)
 
-        // Initialize DatabaseHelper
-        dbHelper = DatabaseHelper(this)
+        // Initialize FirebaseHelper
+        dbHelper = FirebaseHelper(this)
 
-        // Load existing contacts from the database
-        contactList = dbHelper.getAllContacts().toMutableList()
+        // Load existing contacts from Firestore
+        dbHelper.getAllContacts { contacts ->
+            contactList = contacts.toMutableList()
 
-        // Set up adapter and pass the listener to it
-        contactAdapter = ContactAdapter(contactList, this) { contact ->
-            // Delete the contact from the list and update RecyclerView
-            contactList.remove(contact)
-            contactAdapter.notifyDataSetChanged()
+            // Set up adapter and pass the listener to it
+            contactAdapter = ContactAdapter(contactList, this) { contact ->
+                // Delete the contact from the list and update RecyclerView
+                contactList.remove(contact)
+                contactAdapter.notifyDataSetChanged()
 
-            // Delete the contact from the database
-            dbHelper.deleteContactByPhone(contact.name)  // Call delete by name
+                // Delete the contact from Firestore
+                dbHelper.deleteContactByPhone(contact.phoneNumber)
+            }
+            contactsRecyclerView.adapter = contactAdapter
         }
-        contactsRecyclerView.adapter = contactAdapter
 
         // Add contact button
         val addContactButton: ImageButton = findViewById(R.id.imageButton)
@@ -50,8 +52,8 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
                 contactList.add(newContact)
                 contactAdapter.notifyItemInserted(contactList.size - 1)
 
-                // Save the new contact to the database
-                dbHelper.addContact(newContact.name, newContact.phoneNumber)  // Correct method call
+                // Save the new contact to Firestore
+                dbHelper.addContact(newContact.name, newContact.phoneNumber)
             }
             dialog.show(supportFragmentManager, "AddContactDialog")
         }

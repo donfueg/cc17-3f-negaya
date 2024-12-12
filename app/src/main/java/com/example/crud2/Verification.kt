@@ -14,13 +14,14 @@ class Verification : AppCompatActivity() {
     private lateinit var otpDigit3: EditText
     private lateinit var otpDigit4: EditText
     private lateinit var otpDigit5: EditText
-    private lateinit var dbHelper: DatabaseHelper
+    private lateinit var dbHelper: FirebaseHelper // Use FirebaseHelper instead of DatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_verification)
 
-        dbHelper = DatabaseHelper(this)
+        // Initialize FirebaseHelper
+        dbHelper = FirebaseHelper(this)
 
         verifyButton = findViewById(R.id.verifyButton)
         otpDigit1 = findViewById(R.id.otpDigit1)

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services") // Add this line
 }
 
 android {
@@ -56,10 +57,12 @@ dependencies {
     // Google Maps dependency
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
-    implementation(libs.places)  // If using version catalog
+    implementation(libs.places)
 
-    // Alternatively, you can use this direct dependency if not using version catalog
-    // implementation 'com.google.android.gms:play-services-maps:17.0.1'
+    // Firebase dependencies
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.common.ktx)
 
     // Test dependencies
     testImplementation(libs.junit)
