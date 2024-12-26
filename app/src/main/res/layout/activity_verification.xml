@@ -100,6 +100,7 @@
     <!-- Verify Button (Large and in focus, with spacing) -->
 
     <!-- Resend OTP Text (Below the Verify button, with clear visibility) -->
+
     <Button
         android:id="@+id/verifyButton"
         android:layout_width="280dp"
@@ -109,7 +110,7 @@
         android:contentDescription="Verify OTP button"
         android:importantForAccessibility="yes"
         android:text="Verify"
-        android:textColor="@android:color/black"
+        android:textColor="#E3DAC9"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"

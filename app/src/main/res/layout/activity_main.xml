@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="@font/elsie_swash_caps"
         android:text="Welcome To"
-        android:textColor="#D8D2C2"
+        android:textColor="#1A1A19"
         android:textSize="45sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -30,7 +30,7 @@
         android:layout_marginTop="20dp"
         android:fontFamily="@font/elsie_swash_caps"
         android:text="Emlet App"
-        android:textColor="#D8D2C2"
+        android:textColor="#1A1A19"
         android:textSize="50sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
@@ -46,7 +46,7 @@
         android:layout_marginTop="36dp"
         android:background="@drawable/rounded_button"
         android:text="Register"
-        android:textColor="#000000"
+        android:textColor="#E3DAC9"
         android:textSize="20sp"
         android:textStyle="italic"
         app:layout_constraintEnd_toEndOf="parent"
@@ -56,6 +56,8 @@
         app:layout_constraintWidth_percent="0.6" />
 
     <!-- Login Button -->
+
+    <!-- App Logo Image -->
     <Button
         android:id="@+id/button4"
         android:layout_width="0dp"
@@ -63,16 +65,14 @@
         android:layout_marginTop="16dp"
         android:background="@drawable/rounded_button"
         android:text="Login"
-        android:textColor="#000000"
+        android:textColor="#E3DAC9"
         android:textSize="20sp"
         android:textStyle="italic"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button3"
         app:layout_constraintWidth_percent="0.6" />
 
-    <!-- App Logo Image -->
     <ImageView
         android:id="@+id/imageView4"
         android:layout_width="0dp"

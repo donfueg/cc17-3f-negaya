@@ -3,10 +3,10 @@ package com.example.crud2
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
-import android.widget.ImageView
-import android.widget.ProgressBar
 import android.view.animation.AlphaAnimation
 import android.view.animation.ScaleAnimation
+import android.widget.ImageView
+import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 
 class SplashActivity : AppCompatActivity() {
@@ -18,29 +18,38 @@ class SplashActivity : AppCompatActivity() {
         val logoImageView = findViewById<ImageView>(R.id.logoImageView)
         val progressBar = findViewById<ProgressBar>(R.id.progressBar)
 
-        // Fade-in animation
-        val fadeIn = AlphaAnimation(0f, 1f)
-        fadeIn.duration = 1000 // 1 second fade-in animation
+        // Fade-in animation for the logo
+        val fadeIn = AlphaAnimation(0f, 1f).apply {
+            duration = 1000 // Fade in over 1 second
+            startOffset = 0 // Start immediately
+        }
 
-        // Scale-up animation
+        // Scale-up animation for the logo
         val scaleUp = ScaleAnimation(
-            0.5f, 1.0f,  // Scale from 50% to 100% in X direction
-            0.5f, 1.0f,  // Scale from 50% to 100% in Y direction
+            0.85f, 1.0f,  // Scale from 85% to 100% in X direction
+            0.85f, 1.0f,  // Scale from 85% to 100% in Y direction
             android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
             android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
-        )
-        scaleUp.duration = 1000 // 1 second scale-up animation
+        ).apply {
+            duration = 1000 // Scale up over 1 second
+            startOffset = 500 // Start slightly after fade-in to create a smooth transition
+        }
 
-        // Start both animations on the logo
+        // Start fade-in and scale-up animations on the logo
         logoImageView.startAnimation(fadeIn)
         logoImageView.startAnimation(scaleUp)
 
-        // Show the progress bar during animation
+        // Fade-in the progress bar
         progressBar.visibility = ProgressBar.VISIBLE
+        val progressBarFadeIn = AlphaAnimation(0f, 1f).apply {
+            duration = 1000 // Fade in over 1 second
+            startOffset = 1000 // Start after the logo animations are finished
+        }
+        progressBar.startAnimation(progressBarFadeIn)
 
-        // Set a 3-second delay for splash screen
+        // Set a 3-second delay before transitioning to the main activity
         Handler().postDelayed({
-            // After the delay, hide the progress bar
+            // Hide the progress bar after the delay
             progressBar.visibility = ProgressBar.GONE
 
             // Start MainActivity after 3 seconds
