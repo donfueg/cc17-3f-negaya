@@ -44,7 +44,7 @@
         android:backgroundTint="@color/white"
         android:hint="Email"
         android:textColor="#1A1A19"
-        android:textColorHint="1A1A19"
+        android:textColorHint="#1A1A19"
         android:textSize="17sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
