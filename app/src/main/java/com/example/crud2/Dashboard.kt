@@ -17,11 +17,10 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.database.*
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -31,6 +30,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
     private lateinit var database: DatabaseReference
+    private var currentMarker: Marker? = null // Single marker reference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +40,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         database = FirebaseDatabase.getInstance()
             .getReferenceFromUrl("https://ahhh-41e71-default-rtdb.firebaseio.com/location")
 
-        // Set up UI and map fragment as before
+        // Set up UI and map fragment
         usernameTextView = findViewById(R.id.textView5)
         val username = intent.getStringExtra("EXTRA_USERNAME") ?: "Guest"
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -122,7 +122,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
                 val currentLatLng = LatLng(it.latitude, it.longitude)
-                mMap.addMarker(MarkerOptions().position(currentLatLng).title("You are here"))
+
+                // Remove previous marker if it exists
+                currentMarker?.remove()
+
+                // Add a new marker
+                currentMarker = mMap.addMarker(MarkerOptions().position(currentLatLng).title("You are here"))
+
+                // Move camera to the current location
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
             }
         }
@@ -131,18 +138,23 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private fun fetchLocationsFromDatabase() {
         database.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                mMap.clear() // Clear existing markers
-
                 val latitude = snapshot.child("latitude").getValue(Double::class.java)
                 val longitude = snapshot.child("longitude").getValue(Double::class.java)
 
                 if (latitude != null && longitude != null) {
                     val location = LatLng(latitude, longitude)
-                    mMap.addMarker(
+
+                    // Remove previous marker if it exists
+                    currentMarker?.remove()
+
+                    // Add a new marker
+                    currentMarker = mMap.addMarker(
                         MarkerOptions()
                             .position(location)
                             .title("Location from Firebase")
                     )
+
+                    // Move camera to the new location
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
                 }
             }

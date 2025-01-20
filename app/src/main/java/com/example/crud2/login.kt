@@ -43,7 +43,7 @@ class Login : AppCompatActivity() {
             val hashedPassword = hashPassword(password)
 
             // Validate user with Firebase
-            dbHelper.validateUserByUsernameAndPassword(username, hashedPassword) { isValid ->
+            dbHelper.validateUserByUsernameAndPassword(username, hashedPassword)  { isValid ->
                 if (isValid) {
                     Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
 
