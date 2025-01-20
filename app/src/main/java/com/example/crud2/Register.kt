@@ -9,8 +9,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 
 class Register : AppCompatActivity() {
 
@@ -21,13 +19,14 @@ class Register : AppCompatActivity() {
     private lateinit var registerButton: Button
     private lateinit var loginTextView: TextView
 
-    private lateinit var dbHelper: FirebaseHelper
+    private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        // Initialize the views
+        // Initialize views
         emailEditText = findViewById(R.id.email)
         usernameEditText = findViewById(R.id.contact)
         phoneEditText = findViewById(R.id.phone)
@@ -35,51 +34,81 @@ class Register : AppCompatActivity() {
         registerButton = findViewById(R.id.register)
         loginTextView = findViewById(R.id.login)
 
-        // Initialize DatabaseHelper
-        dbHelper = FirebaseHelper(this)
+        // Initialize Firebase instances
+        auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
 
-        // Handle register button click
+        // Register button click listener
         registerButton.setOnClickListener {
-            val email = emailEditText.text.toString()
-            val username = usernameEditText.text.toString()
-            val phone = phoneEditText.text.toString()
-            val password = passwordEditText.text.toString()
+            val email = emailEditText.text.toString().trim()
+            val username = usernameEditText.text.toString().trim()
+            val phone = phoneEditText.text.toString().trim()
+            val password = passwordEditText.text.toString().trim()
 
-            // Validate input fields
             if (email.isNotEmpty() && username.isNotEmpty() && phone.isNotEmpty() && password.isNotEmpty()) {
                 if (isPhoneValid(phone)) {
-                    // Hash the password before storing it
-                    val hashedPassword = hashPassword(password)
-
-                    // Insert the user into the database with callback
-                    dbHelper.addUser(username, hashedPassword, email, phone) { result ->
-                        if (result) { // Success
-                            // Pass username to the Verification activity
-                            val intent = Intent(this, Verification::class.java).apply {
-                                putExtra("EXTRA_USERNAME", username) // Pass username
-                            }
-                            startActivity(intent)
-                            finish() // Close the register screen
-                        } else {
-                            // Show failure message
-                            Toast.makeText(this, "Registration failed, try again!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    createAccount(email, username, phone, password)
                 } else {
-                    // Show error message for invalid phone number
-                    Toast.makeText(this, "Invalid phone number. Please enter numbers only.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Invalid phone number. Use digits only.", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                // Show error message for empty fields
-                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "All fields are required.", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Redirect to login if user already has an account
+        // Login redirect
         loginTextView.setOnClickListener {
             val intent = Intent(this, Login::class.java)
             startActivity(intent)
         }
+    }
+
+    // Function to create an account with Firebase Authentication
+    private fun createAccount(email: String, username: String, phone: String, password: String) {
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        saveUserToFirestore(userId, username, email, phone, password)
+                    } else {
+                        Toast.makeText(this, "Failed to retrieve user ID.", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this, "Registration failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+    }
+
+    // Function to save user data to Firestore
+    private fun saveUserToFirestore(userId: String, username: String, email: String, phone: String, password: String) {
+        val hashedPassword = hashPassword(password) // Hash the password before saving
+        val user = hashMapOf(
+            "userId" to userId,
+            "username" to username,
+            "email" to email,
+            "phone" to phone,
+            "password" to hashedPassword // Store hashed password
+        )
+
+        firestore.collection("users").document(userId)
+            .set(user)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show()
+                navigateToVerification(phone) // Pass phone number to Verification activity
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to save user: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // Navigate to verification activity
+    private fun navigateToVerification(phone: String) {
+        val intent = Intent(this, Verification::class.java).apply {
+            putExtra("EXTRA_PHONE", phone) // Pass phone number to Verification activity
+        }
+        startActivity(intent)
+        finish()
     }
 
     // Function to hash the password
@@ -93,8 +122,8 @@ class Register : AppCompatActivity() {
         return sb.toString()
     }
 
-    // Function to validate the phone number
+    // Function to validate phone number
     private fun isPhoneValid(phone: String): Boolean {
-        return phone.matches(Regex("^[0-9]+$")) // Regex checks if the phone contains only digits
+        return phone.matches(Regex("^[0-9]+$"))
     }
 }

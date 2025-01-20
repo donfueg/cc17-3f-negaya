@@ -13,7 +13,12 @@
           "package_name": "com.example.crud2"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "912369921827-282c0kivlvggbfdc9c3tt8qmhvs4ckbj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAtL3YY_8azozTs-hIMFy1_XMFQ1-LekaI"
@@ -21,7 +26,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "912369921827-282c0kivlvggbfdc9c3tt8qmhvs4ckbj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

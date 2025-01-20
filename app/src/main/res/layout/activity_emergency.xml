@@ -57,69 +57,22 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/textView4"
             app:layout_constraintWidth_percent="0.5" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Emergency Action Buttons -->
+    <!-- ImageButton for SOS -->
     <ImageButton
-        android:id="@+id/police"
-        android:layout_width="145dp"
-        android:layout_height="117dp"
-        android:layout_marginBottom="44dp"
-        android:background="@drawable/rounded_button"
+        android:id="@+id/sosButton"
+        android:layout_width="267dp"
+        android:layout_height="251dp"
+        android:layout_marginTop="88dp"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="SOS Button"
         android:scaleType="fitCenter"
-        app:layout_constraintBottom_toTopOf="@+id/firestation"
-        app:layout_constraintEnd_toStartOf="@+id/ambulance"
-        app:layout_constraintHorizontal_bias="0.435"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/police" />
-
-    <ImageButton
-        android:id="@+id/ambulance"
-        android:layout_width="145dp"
-        android:layout_height="117dp"
-        android:layout_marginEnd="36dp"
-        android:layout_marginBottom="44dp"
-        android:background="@drawable/rounded_button"
-        android:scaleType="fitCenter"
-        app:layout_constraintBottom_toTopOf="@+id/risk"
+        android:src="@drawable/sos"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ambulance" />
-
-    <ImageButton
-        android:id="@+id/firestation"
-        android:layout_width="145dp"
-        android:layout_height="117dp"
-        android:layout_marginBottom="156dp"
-        android:background="@drawable/rounded_button"
-        android:scaleType="fitCenter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/risk"
-        app:layout_constraintHorizontal_bias="0.435"
+        app:layout_constraintHorizontal_bias="0.562"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@drawable/firestation" />
-
-    <ImageButton
-        android:id="@+id/risk"
-        android:layout_width="145dp"
-        android:layout_height="117dp"
-        android:layout_marginEnd="36dp"
-        android:layout_marginBottom="156dp"
-        android:background="@drawable/rounded_button"
-        android:scaleType="fitCenter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/riskreduction" />
-
-    <!-- Image below the header -->
-    <ImageView
-        android:id="@+id/imageView6"
-        android:layout_width="303dp"
-        android:layout_height="111dp"
-        android:layout_marginTop="32dp"
-        android:scaleType="fitXY"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/header"
-        app:srcCompat="@drawable/bus" />
+        app:layout_constraintTop_toBottomOf="@+id/header" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

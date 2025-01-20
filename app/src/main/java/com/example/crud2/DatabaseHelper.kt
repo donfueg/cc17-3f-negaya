@@ -1,7 +1,6 @@
 package com.example.crud2
 
 import android.content.Context
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -13,7 +12,6 @@ class FirebaseHelper(context: Context) {
 
     // Firebase collections
     private val usersCollection = db.collection("users")
-    private val contactsCollection = db.collection("contacts")
 
     // Method to add a user to Firestore
     fun addUser(
@@ -23,17 +21,20 @@ class FirebaseHelper(context: Context) {
         phone: String,
         callback: (Boolean) -> Unit
     ) {
+        val userId = auth.currentUser?.uid ?: return callback(false)
+
         val user = hashMapOf(
             "username" to username,
             "password" to password,
             "email" to email,
-            "phone" to phone
+            "phone" to phone,
+            "userId" to userId // Associate the account with a unique identifier
         )
 
-        // Add a new document with a generated ID
-        usersCollection.add(user)
-            .addOnSuccessListener { documentReference ->
-                println("User added with ID: ${documentReference.id}")
+        // Add a new document for the user
+        usersCollection.document(userId).set(user)
+            .addOnSuccessListener {
+                println("User added with ID: $userId")
                 callback(true) // Callback with success
             }
             .addOnFailureListener { e ->
@@ -60,20 +61,26 @@ class FirebaseHelper(context: Context) {
                 }
             }
             .addOnFailureListener { e ->
-                println("Error getting documents: $e")
+                println("Error validating user: $e")
                 callback(false)
             }
     }
 
-    // Method to add a contact to Firestore
+    // Method to add a contact for the logged-in user
     fun addContact(name: String, phone: String) {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            println("Error: User not logged in")
+            return
+        }
+
         val contact = hashMapOf(
             "name" to name,
-            "phone" to phone
+            "phone" to phone,
+            "userId" to userId
         )
 
-        // Add a new document with a generated ID
-        contactsCollection.add(contact)
+        usersCollection.document(userId).collection("contacts").add(contact)
             .addOnSuccessListener { documentReference ->
                 println("Contact added with ID: ${documentReference.id}")
             }
@@ -82,9 +89,16 @@ class FirebaseHelper(context: Context) {
             }
     }
 
-    // Method to get all contacts from Firestore
+    // Method to get all contacts for the logged-in user
     fun getAllContacts(callback: (List<Contact>) -> Unit) {
-        contactsCollection.get()
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            println("Error: User not logged in")
+            callback(emptyList())
+            return
+        }
+
+        usersCollection.document(userId).collection("contacts").get()
             .addOnSuccessListener { result ->
                 val contactList = mutableListOf<Contact>()
                 for (document in result) {
@@ -101,7 +115,13 @@ class FirebaseHelper(context: Context) {
 
     // Method to delete a contact by phone number
     fun deleteContactByPhone(phone: String) {
-        contactsCollection
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            println("Error: User not logged in")
+            return
+        }
+
+        usersCollection.document(userId).collection("contacts")
             .whereEqualTo("phone", phone)
             .get()
             .addOnSuccessListener { result ->
@@ -120,10 +140,15 @@ class FirebaseHelper(context: Context) {
             }
     }
 
-    // Method to delete all contacts
+    // Method to delete all contacts for the logged-in user
     fun deleteAllContacts() {
-        contactsCollection
-            .get()
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            println("Error: User not logged in")
+            return
+        }
+
+        usersCollection.document(userId).collection("contacts").get()
             .addOnSuccessListener { result ->
                 for (document in result) {
                     document.reference.delete()
@@ -140,3 +165,5 @@ class FirebaseHelper(context: Context) {
             }
     }
 }
+
+data class Contact(val name: String, val phoneNumber: String)
