@@ -14,7 +14,7 @@ class Login : AppCompatActivity() {
     private lateinit var passwordEditText: EditText
     private lateinit var loginButton: Button
     private lateinit var registerTextView: TextView
-    private lateinit var dbHelper: FirebaseHelper // Use FirebaseHelper instead of DatabaseHelper
+    private lateinit var dbHelper: FirebaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,31 +31,7 @@ class Login : AppCompatActivity() {
 
         // Set up the Login button click listener
         loginButton.setOnClickListener {
-            val username = usernameEditText.text.toString().trim()
-            val password = passwordEditText.text.toString().trim()
-
-            if (username.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Please enter both username and password", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            // Hash the password before checking
-            val hashedPassword = hashPassword(password)
-
-            // Validate user with Firebase
-            dbHelper.validateUserByUsernameAndPassword(username, hashedPassword)  { isValid ->
-                if (isValid) {
-                    Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
-
-                    // Pass the username to DashboardActivity
-                    val intent = Intent(this, Dashboard::class.java)
-                    intent.putExtra("EXTRA_USERNAME", username) // Pass the username
-                    startActivity(intent)
-                    finish()  // Close the login activity
-                } else {
-                    Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
-                }
-            }
+            handleLogin()
         }
 
         // Set up the Register link click listener
@@ -65,14 +41,59 @@ class Login : AppCompatActivity() {
         }
     }
 
-    // Function to hash the password before storing or validating
-    private fun hashPassword(password: String): String {
-        val md = java.security.MessageDigest.getInstance("SHA-256")
-        val bytes = md.digest(password.toByteArray())
-        val sb = StringBuilder()
-        for (b in bytes) {
-            sb.append(String.format("%02x", b))
+    private fun handleLogin() {
+        val username = usernameEditText.text.toString().trim()
+        val password = passwordEditText.text.toString().trim()
+
+        // Validate inputs
+        if (username.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Please enter both username and password", Toast.LENGTH_SHORT).show()
+            return
         }
-        return sb.toString()
+
+        // Hash the password
+        val hashedPassword = hashPassword(password)
+
+        // Validate the user
+        dbHelper.validateUserByUsernameAndPassword(username, hashedPassword) { isValid ->
+            runOnUiThread {
+                if (isValid) {
+                    // Set the current user in FirebaseHelper
+                    dbHelper.setCurrentUser(username) { success ->
+                        runOnUiThread {
+                            if (success) {
+                                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                                navigateToDashboard(username)
+                            } else {
+                                Toast.makeText(this, "Error setting up user session", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                } else {
+                    Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun navigateToDashboard(username: String) {
+        val intent = Intent(this, Dashboard::class.java).apply {
+            putExtra("EXTRA_USERNAME", username)
+            // Add flags to clear the activity stack
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun hashPassword(password: String): String {
+        return try {
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            val bytes = md.digest(password.toByteArray())
+            bytes.joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            password // Fallback to plain password if hashing fails
+        }
     }
 }

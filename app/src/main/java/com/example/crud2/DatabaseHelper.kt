@@ -1,49 +1,17 @@
 package com.example.crud2
 
 import android.content.Context
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class FirebaseHelper(context: Context) {
-
     private val db = Firebase.firestore
     private val auth = FirebaseAuth.getInstance()
+    private var currentUserId: String? = null
 
-    // Firebase collections
-    private val usersCollection = db.collection("users")
-
-    // Method to add a user to Firestore
-    fun addUser(
-        username: String,
-        password: String,
-        email: String,
-        phone: String,
-        callback: (Boolean) -> Unit
-    ) {
-        val userId = auth.currentUser?.uid ?: return callback(false)
-
-        val user = hashMapOf(
-            "username" to username,
-            "password" to password,
-            "email" to email,
-            "phone" to phone,
-            "userId" to userId // Associate the account with a unique identifier
-        )
-
-        // Add a new document for the user
-        usersCollection.document(userId).set(user)
-            .addOnSuccessListener {
-                println("User added with ID: $userId")
-                callback(true) // Callback with success
-            }
-            .addOnFailureListener { e ->
-                println("Error adding user: $e")
-                callback(false) // Callback with failure
-            }
-    }
-
-    // Method to validate user by username and password
+    // Validate user by username and password
     fun validateUserByUsernameAndPassword(
         username: String,
         password: String,
@@ -54,116 +22,158 @@ class FirebaseHelper(context: Context) {
             .whereEqualTo("password", password)
             .get()
             .addOnSuccessListener { result ->
-                if (result.isEmpty) {
-                    callback(false)
-                } else {
+                if (!result.isEmpty) {
+                    val document = result.documents[0]
+                    currentUserId = document.id
                     callback(true)
+                } else {
+                    currentUserId = null
+                    callback(false)
                 }
             }
-            .addOnFailureListener { e ->
-                println("Error validating user: $e")
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error validating user: ${exception.message}")
+                currentUserId = null
                 callback(false)
             }
     }
 
-    // Method to add a contact for the logged-in user
-    fun addContact(name: String, phone: String) {
-        val userId = auth.currentUser?.uid
+    // Set current user ID
+    fun setCurrentUser(username: String, callback: (Boolean) -> Unit) {
+        Log.d("FirebaseHelper", "Setting current user for username: $username")
+
+        if (currentUserId != null) {
+            Log.d("FirebaseHelper", "Current user already set: $currentUserId")
+            callback(true)
+            return
+        }
+
+        usersCollection
+            .whereEqualTo("username", username)
+            .get()
+            .addOnSuccessListener { result ->
+                if (result.isEmpty) {
+                    Log.e("FirebaseHelper", "No user found for username: $username")
+                    currentUserId = null
+                    callback(false)
+                } else {
+                    val document = result.documents[0]
+                    currentUserId = document.id
+                    Log.d("FirebaseHelper", "User found, currentUserId set: $currentUserId")
+                    callback(true)
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error setting current user: ${exception.message}")
+                currentUserId = null
+                callback(false)
+            }
+    }
+
+    // Get the current user ID
+    private fun getCurrentUserId(): String? {
+        return currentUserId
+    }
+
+    // Add a new contact
+    fun addContact(name: String, phone: String, callback: (Boolean) -> Unit) {
+        val userId = getCurrentUserId()
         if (userId == null) {
-            println("Error: User not logged in")
+            Log.e("FirebaseHelper", "currentUserId is null. Cannot add contact.")
+            callback(false)
             return
         }
 
         val contact = hashMapOf(
             "name" to name,
             "phone" to phone,
-            "userId" to userId
+            "timestamp" to System.currentTimeMillis()
         )
 
-        usersCollection.document(userId).collection("contacts").add(contact)
-            .addOnSuccessListener { documentReference ->
-                println("Contact added with ID: ${documentReference.id}")
+        usersCollection.document(userId)
+            .collection("contacts")
+            .add(contact)
+            .addOnSuccessListener {
+                callback(true)
             }
-            .addOnFailureListener { e ->
-                println("Error adding contact: $e")
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error adding contact: ${exception.message}")
+                callback(false)
             }
     }
 
-    // Method to get all contacts for the logged-in user
+    // Retrieve all contacts
     fun getAllContacts(callback: (List<Contact>) -> Unit) {
-        val userId = auth.currentUser?.uid
+        val userId = getCurrentUserId()
         if (userId == null) {
-            println("Error: User not logged in")
+            Log.e("FirebaseHelper", "currentUserId is null. Cannot retrieve contacts.")
             callback(emptyList())
             return
         }
 
-        usersCollection.document(userId).collection("contacts").get()
+        usersCollection.document(userId)
+            .collection("contacts")
+            .orderBy("timestamp")
+            .get()
             .addOnSuccessListener { result ->
                 val contactList = mutableListOf<Contact>()
                 for (document in result) {
-                    val name = document.getString("name") ?: ""
-                    val phone = document.getString("phone") ?: ""
+                    val name = document.getString("name") ?: continue
+                    val phone = document.getString("phone") ?: continue
                     contactList.add(Contact(name, phone))
                 }
                 callback(contactList)
             }
-            .addOnFailureListener { e ->
-                println("Error getting contacts: $e")
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error retrieving contacts: ${exception.message}")
+                callback(emptyList())
             }
     }
 
-    // Method to delete a contact by phone number
-    fun deleteContactByPhone(phone: String) {
-        val userId = auth.currentUser?.uid
+    // Delete a contact by phone number
+    fun deleteContactByPhone(phoneNumber: String, callback: (Boolean) -> Unit) {
+        val userId = getCurrentUserId()
         if (userId == null) {
-            println("Error: User not logged in")
+            Log.e("FirebaseHelper", "currentUserId is null. Cannot delete contact.")
+            callback(false)
             return
         }
 
-        usersCollection.document(userId).collection("contacts")
-            .whereEqualTo("phone", phone)
+        usersCollection.document(userId)
+            .collection("contacts")
+            .whereEqualTo("phone", phoneNumber)
             .get()
             .addOnSuccessListener { result ->
-                for (document in result) {
-                    document.reference.delete()
-                        .addOnSuccessListener {
-                            println("Contact deleted")
-                        }
-                        .addOnFailureListener { e ->
-                            println("Error deleting contact: $e")
-                        }
+                if (!result.isEmpty) {
+                    for (document in result.documents) {
+                        document.reference.delete()
+                            .addOnSuccessListener {
+                                callback(true)
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.e("FirebaseHelper", "Error deleting contact: ${exception.message}")
+                                callback(false)
+                            }
+                    }
+                } else {
+                    callback(false)
                 }
             }
-            .addOnFailureListener { e ->
-                println("Error getting contacts: $e")
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error finding contact to delete: ${exception.message}")
+                callback(false)
             }
     }
 
-    // Method to delete all contacts for the logged-in user
-    fun deleteAllContacts() {
-        val userId = auth.currentUser?.uid
-        if (userId == null) {
-            println("Error: User not logged in")
-            return
-        }
+    // Sign out the current user
+    fun signOut() {
+        currentUserId = null
+    }
 
-        usersCollection.document(userId).collection("contacts").get()
-            .addOnSuccessListener { result ->
-                for (document in result) {
-                    document.reference.delete()
-                        .addOnSuccessListener {
-                            println("Contact deleted")
-                        }
-                        .addOnFailureListener { e ->
-                            println("Error deleting contact: $e")
-                        }
-                }
-            }
-            .addOnFailureListener { e ->
-                println("Error getting contacts: $e")
-            }
+    companion object {
+        private val usersCollection = Firebase.firestore.collection("users")
     }
 }
 
-data class Contact(val name: String, val phoneNumber: String)
+// Data class for Contact
+data class Contact(val name: String, val phone: String)

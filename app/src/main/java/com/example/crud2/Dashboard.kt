@@ -60,7 +60,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
         // Set up buttons for navigation
         findViewById<Button>(R.id.contact).setOnClickListener {
-            startActivity(Intent(this, ContactActivity::class.java))
+            val username = getSharedPreferences("user_prefs", MODE_PRIVATE)
+                .getString("username", "Guest")
+            val intent = Intent(this, ContactActivity::class.java)
+            intent.putExtra("EXTRA_USERNAME", username)
+            startActivity(intent)
         }
 
         findViewById<Button>(R.id.button6).setOnClickListener {
@@ -95,6 +99,15 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 else -> false
             }
         }
+    }
+    private fun navigateToContacts(username: String) {
+        val intent = Intent(this, Dashboard::class.java).apply {
+            putExtra("EXTRA_USERNAME", username)
+            // Add flags to clear the activity stack
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {

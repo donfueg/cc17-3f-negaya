@@ -21,7 +21,7 @@ class ContactAdapter(
     override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
         val contact = contactList[position]
         holder.nameTextView.text = contact.name
-        holder.phoneTextView.text = contact.phoneNumber
+        holder.phoneTextView.text = contact.phone
 
         // Set up the delete button click listener
         holder.deleteButton.setOnClickListener {
@@ -29,7 +29,7 @@ class ContactAdapter(
         }
 
         holder.itemView.setOnClickListener {
-            onContactClickListener.onContactClick(contact.phoneNumber)
+            onContactClickListener.onContactClick(contact.phone)
         }
     }
 
