@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -22,6 +23,7 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_contact)
 
+        // Retrieve the username from the intent
         username = intent.getStringExtra("EXTRA_USERNAME")
         Log.d("ContactActivity", "Received username: $username")
 
@@ -49,6 +51,10 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
     }
 
     private fun initializeUI() {
+        // Update the TextView to display the logged-in username
+        val usernameTextView: TextView = findViewById(R.id.textViewUsername)
+        usernameTextView.text = "Hello, $username"
+
         contactsRecyclerView = findViewById(R.id.contactsRecyclerView)
         contactsRecyclerView.layoutManager = LinearLayoutManager(this)
 
