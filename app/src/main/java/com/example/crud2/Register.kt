@@ -9,6 +9,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.PhoneAuthOptions
+import com.google.firebase.FirebaseException
+import java.util.concurrent.TimeUnit
 
 class Register : AppCompatActivity() {
 
@@ -47,6 +51,7 @@ class Register : AppCompatActivity() {
 
             if (email.isNotEmpty() && username.isNotEmpty() && phone.isNotEmpty() && password.isNotEmpty()) {
                 if (isPhoneValid(phone)) {
+                    // First create the account in Firebase Auth
                     createAccount(email, username, phone, password)
                 } else {
                     Toast.makeText(this, "Invalid phone number. Use digits only.", Toast.LENGTH_SHORT).show()
@@ -88,25 +93,82 @@ class Register : AppCompatActivity() {
             "username" to username,
             "email" to email,
             "phone" to phone,
-            "password" to hashedPassword // Store hashed password
+            "password" to hashedPassword, // Store hashed password
+            "isVerified" to false // Add verification status
         )
 
         firestore.collection("users").document(userId)
             .set(user)
             .addOnSuccessListener {
-                Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show()
-                navigateToVerification(phone) // Pass phone number to Verification activity
+                Toast.makeText(this, "Account created! Sending verification code...", Toast.LENGTH_SHORT).show()
+                // After account is created, send the OTP
+                sendOtpToPhone(phone, userId)
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Failed to save user: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    // Navigate to verification activity
-    private fun navigateToVerification(phone: String) {
-        val intent = Intent(this, Verification::class.java).apply {
-            putExtra("EXTRA_PHONE", phone) // Pass phone number to Verification activity
+    // Function to send OTP to the phone number
+    private fun sendOtpToPhone(phoneNumber: String, userId: String) {
+        // Format the phone number with country code if not already formatted
+        val formattedPhone = if (phoneNumber.startsWith("+")) phoneNumber else "+$phoneNumber"
+
+        try {
+            val options = PhoneAuthOptions.newBuilder(auth)
+                .setPhoneNumber(formattedPhone)
+                .setTimeout(60L, TimeUnit.SECONDS)
+                .setActivity(this)
+                .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                    override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
+                        // Auto-verification completed (in some devices)
+                        Toast.makeText(this@Register, "Verification completed automatically!", Toast.LENGTH_SHORT).show()
+                        updateUserVerificationStatus(userId, true)
+                        navigateToMainActivity()
+                    }
+
+                    override fun onVerificationFailed(e: FirebaseException) {
+                        Toast.makeText(this@Register, "Verification failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+
+                    override fun onCodeSent(verificationId: String, token: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken) {
+                        // OTP has been sent to the phone number
+                        Toast.makeText(this@Register, "OTP sent successfully!", Toast.LENGTH_SHORT).show()
+                        navigateToVerification(phoneNumber, verificationId, userId)
+                    }
+                })
+                .build()
+
+            PhoneAuthProvider.verifyPhoneNumber(options)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error sending OTP: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    // Update user verification status in Firestore
+    private fun updateUserVerificationStatus(userId: String, isVerified: Boolean) {
+        firestore.collection("users").document(userId)
+            .update("isVerified", isVerified)
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to update verification status: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // Navigate to verification activity with verification ID
+    private fun navigateToVerification(phone: String, verificationId: String, userId: String) {
+        val intent = Intent(this, Verification::class.java).apply {
+            putExtra("EXTRA_PHONE", phone)
+            putExtra("EXTRA_VERIFICATION_ID", verificationId)
+            putExtra("EXTRA_USER_ID", userId)
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    // Navigate to main activity after successful verification
+    private fun navigateToMainActivity() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
     }
@@ -124,6 +186,6 @@ class Register : AppCompatActivity() {
 
     // Function to validate phone number
     private fun isPhoneValid(phone: String): Boolean {
-        return phone.matches(Regex("^[0-9]+$"))
+        return phone.matches(Regex("^[0-9+]+$"))
     }
 }

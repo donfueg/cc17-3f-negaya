@@ -50,7 +50,7 @@
             android:exported="false" /> <!-- Meta-data for Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI" /> <!-- Other activities -->
+            android:value="@string/AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI" />
         <activity
             android:name=".Dashboard"
             android:exported="false" />
