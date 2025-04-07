@@ -10,7 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 class ContactAdapter(
     private var contactList: List<Contact>,
     private val onContactClickListener: OnContactClickListener,
-    private val onDeleteClickListener: (Contact) -> Unit
+    private val onDeleteClickListener: (Contact) -> Unit,
+    private val onEditClickListener: (Contact) -> Unit // Added edit click listener
 ) : RecyclerView.Adapter<ContactAdapter.ContactViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
@@ -26,6 +27,11 @@ class ContactAdapter(
         // Set up the delete button click listener
         holder.deleteButton.setOnClickListener {
             onDeleteClickListener(contact)  // Notify the activity to delete the contact
+        }
+
+        // Set up the edit button click listener
+        holder.editButton.setOnClickListener {
+            onEditClickListener(contact) // Notify the activity to edit the contact
         }
 
         holder.itemView.setOnClickListener {
@@ -44,6 +50,7 @@ class ContactAdapter(
         val nameTextView: TextView = view.findViewById(R.id.contactName)
         val phoneTextView: TextView = view.findViewById(R.id.contactPhone)
         val deleteButton: ImageButton = view.findViewById(R.id.deleteButton)  // Delete button
+        val editButton: ImageButton = view.findViewById(R.id.editButton)  // Edit button
     }
 
     interface OnContactClickListener {

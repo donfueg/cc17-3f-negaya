@@ -26,6 +26,17 @@
         android:textColor="#000000"
         android:paddingEnd="16dp" />
 
+    <!-- Edit button (using default Android icon) -->
+    <ImageButton
+        android:id="@+id/editButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@android:drawable/ic_menu_edit"
+        android:background="?android:attr/selectableItemBackground"
+        android:contentDescription="Edit"
+        android:scaleType="fitCenter"
+        android:padding="12dp" />
+
     <!-- Delete button -->
     <ImageButton
         android:id="@+id/deleteButton"

@@ -165,6 +165,47 @@ class FirebaseHelper(context: Context) {
             }
     }
 
+    // Update a contact by phone number
+    fun updateContact(updatedContact: Contact, callback: (Boolean) -> Unit) {
+        val userId = getCurrentUserId()
+        if (userId == null) {
+            Log.e("FirebaseHelper", "currentUserId is null. Cannot update contact.")
+            callback(false)
+            return
+        }
+
+        // Get the contact reference by phone number
+        usersCollection.document(userId)
+            .collection("contacts")
+            .whereEqualTo("phone", updatedContact.phone)
+            .get()
+            .addOnSuccessListener { result ->
+                if (!result.isEmpty) {
+                    for (document in result.documents) {
+                        // Update the contact
+                        document.reference.update(
+                            "name", updatedContact.name,
+                            "phone", updatedContact.phone,
+                            "timestamp", System.currentTimeMillis()
+                        )
+                            .addOnSuccessListener {
+                                callback(true)
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.e("FirebaseHelper", "Error updating contact: ${exception.message}")
+                                callback(false)
+                            }
+                    }
+                } else {
+                    callback(false)
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error finding contact to update: ${exception.message}")
+                callback(false)
+            }
+    }
+
     // Sign out the current user
     fun signOut() {
         currentUserId = null
