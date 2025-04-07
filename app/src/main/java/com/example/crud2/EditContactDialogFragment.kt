@@ -7,8 +7,8 @@ import android.widget.EditText
 import androidx.fragment.app.DialogFragment
 
 class EditContactDialogFragment(
-    private val contact: Contact,
-    private val onContactUpdated: (Contact) -> Unit
+    private val originalContact: Contact,
+    private val onContactUpdated: (Contact) -> Unit  // This expects only one parameter
 ) : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -19,19 +19,18 @@ class EditContactDialogFragment(
         val phoneEditText: EditText = view.findViewById(R.id.editPhone)
 
         // Pre-fill the EditText fields with the existing contact details
-        nameEditText.setText(contact.name)
-        phoneEditText.setText(contact.phone)
+        nameEditText.setText(originalContact.name)
+        phoneEditText.setText(originalContact.phone)
 
         builder.setView(view)
             .setPositiveButton("Update") { dialog, id ->
                 val updatedName = nameEditText.text.toString()
                 val updatedPhone = phoneEditText.text.toString()
                 val updatedContact = Contact(updatedName, updatedPhone)
-                onContactUpdated(updatedContact)
+                onContactUpdated(updatedContact)  // Just pass the updated contact
             }
             .setNegativeButton("Cancel", null)
 
         return builder.create()
     }
 }
-

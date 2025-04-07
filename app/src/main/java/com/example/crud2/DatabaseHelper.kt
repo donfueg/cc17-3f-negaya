@@ -166,7 +166,8 @@ class FirebaseHelper(context: Context) {
     }
 
     // Update a contact by phone number
-    fun updateContact(updatedContact: Contact, callback: (Boolean) -> Unit) {
+    // In FirebaseHelper.kt
+    fun updateContact(originalContact: Contact, updatedContact: Contact, callback: (Boolean) -> Unit) {
         val userId = getCurrentUserId()
         if (userId == null) {
             Log.e("FirebaseHelper", "currentUserId is null. Cannot update contact.")
@@ -174,15 +175,15 @@ class FirebaseHelper(context: Context) {
             return
         }
 
-        // Get the contact reference by phone number
+        // Get the contact reference by ORIGINAL phone number
         usersCollection.document(userId)
             .collection("contacts")
-            .whereEqualTo("phone", updatedContact.phone)
+            .whereEqualTo("phone", originalContact.phone)  // Use the original phone to find the record
             .get()
             .addOnSuccessListener { result ->
                 if (!result.isEmpty) {
                     for (document in result.documents) {
-                        // Update the contact
+                        // Update the contact with new values
                         document.reference.update(
                             "name", updatedContact.name,
                             "phone", updatedContact.phone,

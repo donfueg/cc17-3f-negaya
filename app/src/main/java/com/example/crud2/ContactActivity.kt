@@ -89,14 +89,14 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
 
             contactList = mutableListOf()
 
-            // Initialize adapter - FIXED: Matches exact parameter order of ContactAdapter
+            // Initialize adapter with proper listener type
             contactAdapter = ContactAdapter(
-                contactList,  // First parameter is the contact list
-                this,  // Second parameter is the OnContactClickListener
-                onDeleteClickListener = { contact ->  // Third parameter is the delete lambda
+                contactList,
+                this,
+                onDeleteClickListener = { contact ->  // Fixed: Ensure this only takes a single Contact
                     deleteContact(contact)
                 },
-                onEditClickListener = { contact ->  // Fourth parameter is the edit lambda
+                onEditClickListener = { contact ->
                     editContact(contact)
                 }
             )
@@ -237,7 +237,8 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
     private fun showEditContactDialog(contact: Contact) {
         try {
             val dialog = EditContactDialogFragment(contact) { updatedContact ->
-                dbHelper.updateContact(updatedContact) { success ->
+                // Here we use both the original contact and the updated contact
+                dbHelper.updateContact(contact, updatedContact) { success ->
                     runOnUiThread {
                         if (success) {
                             loadContacts()
