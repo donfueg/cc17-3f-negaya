@@ -20,7 +20,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.database.*
-import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -58,7 +57,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Set up buttons for navigation
+        // Navigation button: Contact
         findViewById<Button>(R.id.contact).setOnClickListener {
             val username = getSharedPreferences("user_prefs", MODE_PRIVATE)
                 .getString("username", "Guest")
@@ -67,43 +66,20 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             startActivity(intent)
         }
 
-        findViewById<Button>(R.id.button6).setOnClickListener {
-            startActivity(Intent(this, BraceletActivity::class.java))
-        }
-
+        // Navigation button: Emergency
         findViewById<Button>(R.id.emergency).setOnClickListener {
             startActivity(Intent(this, EmergencyActivity::class.java))
         }
 
-        // Set up the "Map" button to navigate to Map
+        // Navigation button: Map (if this points to a different Map screen)
         findViewById<Button>(R.id.button7).setOnClickListener {
             startActivity(Intent(this, Map::class.java))
         }
-
-        // Set up Bottom Navigation
-        val bottomNavigationView: BottomNavigationView = findViewById(R.id.bottomNavigationView)
-        bottomNavigationView.setOnNavigationItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    startActivity(Intent(this, Dashboard::class.java))
-                    true
-                }
-                R.id.nav_emergency -> {
-                    startActivity(Intent(this, EmergencyActivity::class.java))
-                    true
-                }
-                R.id.nav_settings -> {
-                    startActivity(Intent(this, SettingsActivity::class.java))
-                    true
-                }
-                else -> false
-            }
-        }
     }
+
     private fun navigateToContacts(username: String) {
         val intent = Intent(this, Dashboard::class.java).apply {
             putExtra("EXTRA_USERNAME", username)
-            // Add flags to clear the activity stack
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
