@@ -18,26 +18,37 @@ class Login : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_login)
 
-        // Initialize FirebaseHelper
-        dbHelper = FirebaseHelper(this)
+        // Check if the user is already logged in
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
 
-        // Find views
-        usernameEditText = findViewById(R.id.username)
-        passwordEditText = findViewById(R.id.password)
-        loginButton = findViewById(R.id.loginButton)
-        registerTextView = findViewById(R.id.register)
+        // If user is logged in, go directly to the Dashboard
+        if (isLoggedIn) {
+            val username = sharedPreferences.getString("username", "") ?: ""
+            navigateToDashboard(username)
+        } else {
+            setContentView(R.layout.activity_login)
 
-        // Set up the Login button click listener
-        loginButton.setOnClickListener {
-            handleLogin()
-        }
+            // Initialize FirebaseHelper
+            dbHelper = FirebaseHelper(this)
 
-        // Set up the Register link click listener
-        registerTextView.setOnClickListener {
-            val intent = Intent(this, Register::class.java)
-            startActivity(intent)
+            // Find views
+            usernameEditText = findViewById(R.id.username)
+            passwordEditText = findViewById(R.id.password)
+            loginButton = findViewById(R.id.loginButton)
+            registerTextView = findViewById(R.id.register)
+
+            // Set up the Login button click listener
+            loginButton.setOnClickListener {
+                handleLogin()
+            }
+
+            // Set up the Register link click listener
+            registerTextView.setOnClickListener {
+                val intent = Intent(this, Register::class.java)
+                startActivity(intent)
+            }
         }
     }
 
@@ -58,6 +69,13 @@ class Login : AppCompatActivity() {
         dbHelper.validateUserByUsernameAndPassword(username, hashedPassword) { isValid ->
             runOnUiThread {
                 if (isValid) {
+                    // Save login state in SharedPreferences
+                    val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+                    val editor = sharedPreferences.edit()
+                    editor.putString("username", username) // Save the username
+                    editor.putBoolean("is_logged_in", true) // Set the login state to true
+                    editor.apply()  // Commit the changes to SharedPreferences
+
                     // Set the current user in FirebaseHelper
                     dbHelper.setCurrentUser(username) { success ->
                         runOnUiThread {
@@ -95,5 +113,18 @@ class Login : AppCompatActivity() {
             e.printStackTrace()
             password // Fallback to plain password if hashing fails
         }
+    }
+
+    // Logout function to clear SharedPreferences
+    fun logoutUser() {
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.clear()  // Clear SharedPreferences
+        editor.apply()
+
+        // Navigate to Login screen
+        val intent = Intent(this, Login::class.java)
+        startActivity(intent)
+        finish() // Finish current activity to prevent returning to it
     }
 }
