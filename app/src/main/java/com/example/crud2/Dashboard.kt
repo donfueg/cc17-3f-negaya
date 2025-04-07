@@ -75,15 +75,18 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         findViewById<Button>(R.id.button7).setOnClickListener {
             startActivity(Intent(this, Map::class.java))
         }
-    }
 
-    private fun navigateToContacts(username: String) {
-        val intent = Intent(this, Dashboard::class.java).apply {
-            putExtra("EXTRA_USERNAME", username)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Navigation button: Settings / Log Out
+        findViewById<Button>(R.id.settings).setOnClickListener {
+            // Log out by clearing shared preferences
+            val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+            sharedPreferences.edit().clear().apply()
+
+            // Redirect to Login Activity or the desired screen after logout
+            val intent = Intent(this, SettingsActivity::class.java) // Make sure LoginActivity exists
+            startActivity(intent)
+            finish() // Optional: finish the current activity so that the user cannot navigate back
         }
-        startActivity(intent)
-        finish()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {

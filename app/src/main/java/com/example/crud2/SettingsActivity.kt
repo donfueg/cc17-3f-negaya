@@ -12,6 +12,16 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Retrieve theme preference and apply theme
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
+        if (isDarkTheme) {
+            setTheme(R.style.Theme_App_Dark) // Replace with your dark theme style
+        } else {
+            setTheme(R.style.Theme_App_Light) // Replace with your light theme style
+        }
+
         setContentView(R.layout.activity_settings)
 
         // Initialize UI elements
@@ -22,12 +32,10 @@ class SettingsActivity : AppCompatActivity() {
         val logoutButton = findViewById<Button>(R.id.logoutButton)
 
         // Retrieve the username from SharedPreferences
-        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         val username = sharedPreferences.getString("username", "Guest")
         profileNameTextView.text = "Username: $username"
 
-        // Set default theme based on saved preferences (if any)
-        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
+        // Set default theme based on saved preferences
         if (isDarkTheme) {
             darkThemeRadioButton.isChecked = true
         } else {
@@ -37,22 +45,22 @@ class SettingsActivity : AppCompatActivity() {
         // Theme selection handling
         lightThemeRadioButton.setOnClickListener {
             saveThemePreference(false)
+            restartActivity() // Restart activity to apply new theme
         }
 
         darkThemeRadioButton.setOnClickListener {
             saveThemePreference(true)
+            restartActivity() // Restart activity to apply new theme
         }
 
         // Notifications toggle handling
         notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            // Handle enabling/disabling notifications logic here
+            handleNotifications(isChecked)
         }
 
         // Log out button handling
         logoutButton.setOnClickListener {
-            val intent = Intent(this, Login::class.java)
-            startActivity(intent)
-            finish() // Finish SettingsActivity to prevent returning to it
+            logoutUser()
         }
     }
 
@@ -60,5 +68,34 @@ class SettingsActivity : AppCompatActivity() {
     private fun saveThemePreference(isDarkTheme: Boolean) {
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         sharedPreferences.edit().putBoolean("dark_theme", isDarkTheme).apply()
+    }
+
+    // Handle notification toggling
+    private fun handleNotifications(isChecked: Boolean) {
+        // Example logic: Use Firebase or local notification logic here
+        if (isChecked) {
+            // Enable notifications (e.g., subscribe to Firebase topic)
+        } else {
+            // Disable notifications (e.g., unsubscribe from Firebase topic)
+        }
+    }
+
+    // Logout user and navigate back to login screen
+    private fun logoutUser() {
+        // Clear user-related data
+        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+        sharedPreferences.edit().remove("username").apply()
+
+        // Navigate to login activity
+        val intent = Intent(this, Login::class.java)
+        startActivity(intent)
+        finish() // Finish SettingsActivity to prevent returning to it
+    }
+
+    // Restart activity to apply the new theme
+    private fun restartActivity() {
+        val intent = Intent(this, SettingsActivity::class.java)
+        finish() // Finish current activity
+        startActivity(intent) // Start new activity
     }
 }

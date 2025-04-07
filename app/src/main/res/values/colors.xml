@@ -21,4 +21,12 @@
     <color name="button_text_color">#FFFFFF</color> <!-- White Text -->
     <color name="card_background">#2C2C2C</color> <!-- Dark Card Background -->
     <color name="card_elevation">#000000</color> <!-- Dark Elevation -->
+
+    <!-- Light Theme Colors -->
+    <color name="textColorPrimaryLight">#000000</color> <!-- Black text for light theme -->
+    <color name="windowBackgroundLight">#FFFFFF</color> <!-- White background for light theme -->
+
+    <!-- Dark Theme Colors -->
+    <color name="textColorPrimaryDark">#FFFFFF</color> <!-- White text for dark theme -->
+    <color name="windowBackgroundDark">#121212</color> <!-- Dark background for dark theme -->
 </resources>

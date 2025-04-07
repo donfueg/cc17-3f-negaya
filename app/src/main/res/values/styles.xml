@@ -1,19 +1,21 @@
 <resources>
     <!-- Light Theme -->
-    <style name="LightTheme" parent="Theme.AppCompat.Light">
+    <style name="Theme_App_Light" parent="Theme.AppCompat.Light">
         <!-- Primary Color -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <!-- Customize text colors, background, etc. -->
+        <item name="android:textColorPrimary">@color/textColorPrimaryLight</item> <!-- Light theme text color -->
+        <item name="android:windowBackground">@color/windowBackgroundLight</item> <!-- Light theme background -->
     </style>
 
     <!-- Dark Theme -->
-    <style name="DarkTheme" parent="Theme.AppCompat">
+    <style name="Theme_App_Dark" parent="Theme.AppCompat">
         <!-- Primary Color -->
         <item name="colorPrimary">@color/colorPrimaryDark</item>
         <item name="colorPrimaryDark">@color/colorPrimary</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <!-- Customize text colors, background, etc. -->
+        <item name="android:textColorPrimary">@color/textColorPrimaryDark</item> <!-- Dark theme text color -->
+        <item name="android:windowBackground">@color/windowBackgroundDark</item> <!-- Dark theme background -->
     </style>
 </resources>
