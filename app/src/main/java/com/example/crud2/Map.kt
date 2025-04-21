@@ -6,12 +6,10 @@ import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -25,6 +23,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
     private lateinit var showPoliceButton: Button
+    private lateinit var policeInfoTextView: TextView
 
     private lateinit var locationDatabase: DatabaseReference
     private lateinit var policeDatabase: DatabaseReference
@@ -34,14 +33,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_map2)
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         // Initialize Firebase references
         locationDatabase = FirebaseDatabase.getInstance().getReference("location")
@@ -52,6 +44,8 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         showPoliceButton = findViewById(R.id.showPoliceButton)
+        policeInfoTextView = findViewById(R.id.policeInfoTextView)
+
         showPoliceButton.setOnClickListener {
             firebaseLocation?.let { location ->
                 findNearestPoliceStation(location.latitude, location.longitude)
@@ -64,7 +58,9 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
             googleMap.isMyLocationEnabled = true
             googleMap.uiSettings.isMyLocationButtonEnabled = true
         }
@@ -77,8 +73,6 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val latitude = snapshot.child("latitude").getValue(Double::class.java)
                 val longitude = snapshot.child("longitude").getValue(Double::class.java)
-
-                Log.d("FirebaseLocation", "Fetched location: lat=$latitude, lon=$longitude")
 
                 if (latitude != null && longitude != null) {
                     firebaseLocation = LatLng(latitude, longitude)
@@ -98,7 +92,6 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("MapActivity", "Failed to read location data: ${error.message}")
                 Toast.makeText(this@Map, "Error reading Firebase data", Toast.LENGTH_SHORT).show()
             }
         })
@@ -111,15 +104,13 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         }
 
         policeDatabase.addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(policeStationsSnapshot: DataSnapshot) {
-                if (!policeStationsSnapshot.exists() || !policeStationsSnapshot.hasChildren()) {
-                    Log.e("FirebaseData", "No police station data found")
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!snapshot.exists()) {
                     Toast.makeText(this@Map, "No police stations found", Toast.LENGTH_SHORT).show()
                     return
                 }
 
-                googleMap.clear() // Clear markers only after confirming data exists
-
+                googleMap.clear()
                 firebaseLocation?.let {
                     googleMap.addMarker(
                         MarkerOptions()
@@ -130,31 +121,28 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 var nearestStation: LatLng? = null
+                var nearestSnapshot: DataSnapshot? = null
                 var minDistance = Double.MAX_VALUE
 
-                for (stationSnapshot in policeStationsSnapshot.children) {
+                for (stationSnapshot in snapshot.children) {
                     val policeLat = stationSnapshot.child("latitude").getValue(Double::class.java)
                     val policeLng = stationSnapshot.child("longitude").getValue(Double::class.java)
+                    if (policeLat == null || policeLng == null) continue
 
-                    if (policeLat == null || policeLng == null) {
-                        Log.w("FirebaseData", "Skipping station ${stationSnapshot.key}: Missing coordinates")
-                        continue
-                    }
+                    val stationLocation = LatLng(policeLat, policeLng)
+                    val distance = calculateDistance(latitude, longitude, policeLat, policeLng)
 
-                    val policeLocation = LatLng(policeLat, policeLng)
                     googleMap.addMarker(
                         MarkerOptions()
-                            .position(policeLocation)
+                            .position(stationLocation)
                             .title("Police Station")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                     )
 
-                    val distance = calculateDistance(latitude, longitude, policeLat, policeLng)
-                    Log.d("DistanceCalc", "Distance to ${stationSnapshot.key}: $distance km")
-
                     if (distance < minDistance) {
                         minDistance = distance
-                        nearestStation = policeLocation
+                        nearestStation = stationLocation
+                        nearestSnapshot = stationSnapshot
                     }
                 }
 
@@ -166,23 +154,26 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
                     )
                     googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
-                    Toast.makeText(this@Map, "Nearest police station marked", Toast.LENGTH_SHORT).show()
-                } ?: run {
-                    Toast.makeText(this@Map, "No valid police stations found", Toast.LENGTH_SHORT).show()
+                }
+
+                nearestSnapshot?.let {
+                    val name = it.child("Station Number").getValue(String::class.java)
+                        ?: it.child("station number").getValue(String::class.java)
+                        ?: "Unknown Station"
+                    val contact = it.child("Contact").getValue(String::class.java) ?: "No contact"
+                    policeInfoTextView.text = "📍 $name\n📞 $contact"
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("MapActivity", "Error fetching police stations: ${error.message}")
-                Toast.makeText(this@Map, "Error reading police station data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@Map, "Failed to fetch police data", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
-    // ✅ FIXED: Now returns Double instead of Float
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val results = FloatArray(1)
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-        return results[0].toDouble() / 1000 // Convert meters to km and ensure Double type
+        return results[0].toDouble() / 1000 // Convert to kilometers
     }
 }
