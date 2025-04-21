@@ -27,28 +27,30 @@ class Login : AppCompatActivity() {
         if (isLoggedIn) {
             val username = sharedPreferences.getString("username", "") ?: ""
             navigateToDashboard(username)
-        } else {
-            setContentView(R.layout.activity_login)
+            return  // Important: exit onCreate to prevent setting content view
+        }
 
-            // Initialize FirebaseHelper
-            dbHelper = FirebaseHelper(this)
+        // If not logged in, display the login screen
+        setContentView(R.layout.activity_login)
 
-            // Find views
-            usernameEditText = findViewById(R.id.username)
-            passwordEditText = findViewById(R.id.password)
-            loginButton = findViewById(R.id.loginButton)
-            registerTextView = findViewById(R.id.register)
+        // Initialize FirebaseHelper
+        dbHelper = FirebaseHelper(this)
 
-            // Set up the Login button click listener
-            loginButton.setOnClickListener {
-                handleLogin()
-            }
+        // Find views
+        usernameEditText = findViewById(R.id.username)
+        passwordEditText = findViewById(R.id.password)
+        loginButton = findViewById(R.id.loginButton)
+        registerTextView = findViewById(R.id.register)
 
-            // Set up the Register link click listener
-            registerTextView.setOnClickListener {
-                val intent = Intent(this, Register::class.java)
-                startActivity(intent)
-            }
+        // Set up the Login button click listener
+        loginButton.setOnClickListener {
+            handleLogin()
+        }
+
+        // Set up the Register link click listener
+        registerTextView.setOnClickListener {
+            val intent = Intent(this, Register::class.java)
+            startActivity(intent)
         }
     }
 
@@ -113,18 +115,5 @@ class Login : AppCompatActivity() {
             e.printStackTrace()
             password // Fallback to plain password if hashing fails
         }
-    }
-
-    // Logout function to clear SharedPreferences
-    fun logoutUser() {
-        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.clear()  // Clear SharedPreferences
-        editor.apply()
-
-        // Navigate to Login screen
-        val intent = Intent(this, Login::class.java)
-        startActivity(intent)
-        finish() // Finish current activity to prevent returning to it
     }
 }

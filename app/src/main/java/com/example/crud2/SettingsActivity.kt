@@ -17,9 +17,9 @@ class SettingsActivity : AppCompatActivity() {
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
         val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
         if (isDarkTheme) {
-            setTheme(R.style.Theme_App_Dark) // Replace with your dark theme style
+            setTheme(R.style.Theme_App_Dark)
         } else {
-            setTheme(R.style.Theme_App_Light) // Replace with your light theme style
+            setTheme(R.style.Theme_App_Light)
         }
 
         setContentView(R.layout.activity_settings)
@@ -62,6 +62,36 @@ class SettingsActivity : AppCompatActivity() {
         logoutButton.setOnClickListener {
             logoutUser()
         }
+
+        // Setup the action bar back button
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
+
+    // Handle back button in action bar
+    override fun onSupportNavigateUp(): Boolean {
+        navigateBack()
+        return true
+    }
+
+    // Handle device back button press
+    override fun onBackPressed() {
+        navigateBack()
+    }
+
+    // Common method to handle back navigation
+    private fun navigateBack() {
+        // Navigate back to Dashboard activity
+        val intent = Intent(this, Dashboard::class.java)
+
+        // Get the username to pass back to Dashboard
+        val username = getSharedPreferences("user_prefs", MODE_PRIVATE)
+            .getString("username", "Guest")
+        intent.putExtra("EXTRA_USERNAME", username)
+
+        // Clear back stack and set Dashboard as the new task root
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+        startActivity(intent)
+        finish() // Finish this activity to prevent it from staying in memory
     }
 
     // Save theme preference in SharedPreferences
@@ -82,12 +112,25 @@ class SettingsActivity : AppCompatActivity() {
 
     // Logout user and navigate back to login screen
     private fun logoutUser() {
-        // Clear user-related data
+        // Clear user session data but keep theme preferences
         val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        sharedPreferences.edit().remove("username").apply()
+        val editor = sharedPreferences.edit()
+
+        // Save the theme preference
+        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
+
+        // Clear user authentication data
+        editor.remove("username")
+        editor.putBoolean("is_logged_in", false)
+        editor.apply()
+
+        // Restore theme preference after clearing
+        editor.putBoolean("dark_theme", isDarkTheme)
+        editor.apply()
 
         // Navigate to login activity
         val intent = Intent(this, Login::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish() // Finish SettingsActivity to prevent returning to it
     }
