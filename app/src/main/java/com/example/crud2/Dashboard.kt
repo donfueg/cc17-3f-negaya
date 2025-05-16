@@ -24,28 +24,34 @@ import com.google.firebase.database.*
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var usernameTextView: TextView
+    private lateinit var heartRateTextView: TextView
     private lateinit var mMap: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
-    private lateinit var database: DatabaseReference
-    private var currentMarker: Marker? = null // Single marker reference
+    private lateinit var locationRef: DatabaseReference
+    private lateinit var heartRateRef: DatabaseReference
+    private var currentMarker: Marker? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
 
-        // Initialize Firebase Realtime Database
-        database = FirebaseDatabase.getInstance()
+        // Firebase references
+        locationRef = FirebaseDatabase.getInstance()
             .getReferenceFromUrl("https://ahhh-41e71-default-rtdb.firebaseio.com/location")
+        heartRateRef = FirebaseDatabase.getInstance()
+            .getReferenceFromUrl("https://ahhh-41e71-default-rtdb.firebaseio.com/heartrate")
 
-        // Set up UI and map fragment
+        // UI references
         usernameTextView = findViewById(R.id.textView5)
+        heartRateTextView = findViewById(R.id.heartRateTextView)
         val username = intent.getStringExtra("EXTRA_USERNAME") ?: "Guest"
-        val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-        sharedPreferences.edit().putString("username", username).apply()
+        getSharedPreferences("user_prefs", MODE_PRIVATE)
+            .edit().putString("username", username).apply()
         usernameTextView.text = "Hello $username"
 
+        // Window insets
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -57,36 +63,49 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        // Navigation button: Contact
+        // Buttons
         findViewById<Button>(R.id.contact).setOnClickListener {
-            val username = getSharedPreferences("user_prefs", MODE_PRIVATE)
+            val user = getSharedPreferences("user_prefs", MODE_PRIVATE)
                 .getString("username", "Guest")
             val intent = Intent(this, ContactActivity::class.java)
-            intent.putExtra("EXTRA_USERNAME", username)
+            intent.putExtra("EXTRA_USERNAME", user)
             startActivity(intent)
         }
 
-        // Navigation button: Emergency
         findViewById<Button>(R.id.emergency).setOnClickListener {
             startActivity(Intent(this, EmergencyActivity::class.java))
         }
 
-        // Navigation button: Map (if this points to a different Map screen)
         findViewById<Button>(R.id.button7).setOnClickListener {
             startActivity(Intent(this, Map::class.java))
         }
 
-        // Navigation button: Settings / Log Out
         findViewById<Button>(R.id.settings).setOnClickListener {
-            // Log out by clearing shared preferences
-            val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
-            sharedPreferences.edit().clear().apply()
-
-            // Redirect to Login Activity or the desired screen after logout
-            val intent = Intent(this, SettingsActivity::class.java) // Make sure LoginActivity exists
-            startActivity(intent)
-            finish() // Optional: finish the current activity so that the user cannot navigate back
+            getSharedPreferences("user_prefs", MODE_PRIVATE).edit().clear().apply()
+            startActivity(Intent(this, SettingsActivity::class.java))
+            finish()
         }
+
+        // Realtime database listeners
+        fetchLocationsFromDatabase()
+        fetchHeartRate()
+    }
+
+    private fun fetchHeartRate() {
+        heartRateRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val heartRate = snapshot.getValue(Int::class.java)
+                heartRate?.let {
+                    heartRateTextView.text = "Heart Rate: $it bpm"
+                } ?: run {
+                    heartRateTextView.text = "Heart Rate: --"
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                heartRateTextView.text = "Heart Rate: --"
+            }
+        })
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -97,7 +116,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.isMyLocationEnabled = true
             getCurrentLocation()
-            fetchLocationsFromDatabase()
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -111,48 +129,32 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return
         }
+
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
                 val currentLatLng = LatLng(it.latitude, it.longitude)
-
-                // Remove previous marker if it exists
                 currentMarker?.remove()
-
-                // Add a new marker
                 currentMarker = mMap.addMarker(MarkerOptions().position(currentLatLng).title("You are here"))
-
-                // Move camera to the current location
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
             }
         }
     }
 
     private fun fetchLocationsFromDatabase() {
-        database.addValueEventListener(object : ValueEventListener {
+        locationRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val latitude = snapshot.child("latitude").getValue(Double::class.java)
                 val longitude = snapshot.child("longitude").getValue(Double::class.java)
 
                 if (latitude != null && longitude != null) {
                     val location = LatLng(latitude, longitude)
-
-                    // Remove previous marker if it exists
                     currentMarker?.remove()
-
-                    // Add a new marker
-                    currentMarker = mMap.addMarker(
-                        MarkerOptions()
-                            .position(location)
-                            .title("Location from Firebase")
-                    )
-
-                    // Move camera to the new location
+                    currentMarker = mMap.addMarker(MarkerOptions().position(location).title("Location from Firebase"))
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle database error
                 println("Error reading Firebase data: ${error.message}")
             }
         })
@@ -160,13 +162,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    mMap.isMyLocationEnabled = true
-                    getCurrentLocation()
-                    fetchLocationsFromDatabase()
-                }
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
+            grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                mMap.isMyLocationEnabled = true
+                getCurrentLocation()
             }
         }
     }

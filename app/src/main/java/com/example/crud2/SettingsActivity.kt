@@ -25,38 +25,8 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         // Initialize UI elements
-        val profileNameTextView = findViewById<TextView>(R.id.profileName)
-        val notificationsSwitch = findViewById<Switch>(R.id.notificationsSwitch)
-        val lightThemeRadioButton = findViewById<RadioButton>(R.id.lightThemeRadioButton)
-        val darkThemeRadioButton = findViewById<RadioButton>(R.id.darkThemeRadioButton)
         val logoutButton = findViewById<Button>(R.id.logoutButton)
 
-        // Retrieve the username from SharedPreferences
-        val username = sharedPreferences.getString("username", "Guest")
-        profileNameTextView.text = "Username: $username"
-
-        // Set default theme based on saved preferences
-        if (isDarkTheme) {
-            darkThemeRadioButton.isChecked = true
-        } else {
-            lightThemeRadioButton.isChecked = true
-        }
-
-        // Theme selection handling
-        lightThemeRadioButton.setOnClickListener {
-            saveThemePreference(false)
-            restartActivity() // Restart activity to apply new theme
-        }
-
-        darkThemeRadioButton.setOnClickListener {
-            saveThemePreference(true)
-            restartActivity() // Restart activity to apply new theme
-        }
-
-        // Notifications toggle handling
-        notificationsSwitch.setOnCheckedChangeListener { _, isChecked ->
-            handleNotifications(isChecked)
-        }
 
         // Log out button handling
         logoutButton.setOnClickListener {
