@@ -22,17 +22,16 @@ class EmergencyActivity : AppCompatActivity() {
             insets
         }
 
-        // Initialize the SOS ImageButton
         val sosButton: ImageButton = findViewById(R.id.sosButton)
-
-        // Set click listener for the ImageButton
         sosButton.setOnClickListener {
-            // Create an Intent to dial 911
             val dialIntent = Intent(Intent.ACTION_DIAL)
             dialIntent.data = Uri.parse("tel:911")
-
-            // Start the dialer
             startActivity(dialIntent)
+        }
+
+        val backButton = findViewById<ImageButton>(R.id.backButton)
+        backButton.setOnClickListener {
+            onBackPressed()  // or finish()
         }
     }
 }

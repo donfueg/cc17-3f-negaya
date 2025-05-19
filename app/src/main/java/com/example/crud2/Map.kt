@@ -2,10 +2,12 @@ package com.example.crud2
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -14,16 +16,18 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 import com.google.firebase.database.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
 
 class Map : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
     private lateinit var showPoliceButton: Button
     private lateinit var policeInfoTextView: TextView
+    private lateinit var backButton: ImageButton
 
     private lateinit var locationDatabase: DatabaseReference
     private lateinit var policeDatabase: DatabaseReference
@@ -45,6 +49,12 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
         showPoliceButton = findViewById(R.id.showPoliceButton)
         policeInfoTextView = findViewById(R.id.policeInfoTextView)
+        backButton = findViewById(R.id.backButton)  // Added back button reference
+
+        // Back button click listener to close the activity
+        backButton.setOnClickListener {
+            onBackPressed()
+        }
 
         showPoliceButton.setOnClickListener {
             firebaseLocation?.let { location ->
@@ -154,6 +164,10 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
                     )
                     googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
+
+                    firebaseLocation?.let { userLoc ->
+                        drawRouteAndShowETA(userLoc, it)
+                    }
                 }
 
                 nearestSnapshot?.let {
@@ -174,6 +188,85 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val results = FloatArray(1)
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-        return results[0].toDouble() / 1000 // Convert to kilometers
+        return results[0].toDouble() / 1000 // in km
+    }
+
+    private fun drawRouteAndShowETA(origin: LatLng, destination: LatLng) {
+        val apiKey = "AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI"
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=${origin.latitude},${origin.longitude}" +
+                "&destination=${destination.latitude},${destination.longitude}" +
+                "&key=$apiKey"
+
+        Thread {
+            try {
+                val client = OkHttpClient()
+                val request = Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                val jsonData = response.body?.string()
+
+                val jsonObject = JSONObject(jsonData!!)
+                val routes = jsonObject.getJSONArray("routes")
+                if (routes.length() > 0) {
+                    val route = routes.getJSONObject(0)
+                    val overviewPolyline = route.getJSONObject("overview_polyline").getString("points")
+                    val legs = route.getJSONArray("legs").getJSONObject(0)
+                    val duration = legs.getJSONObject("duration").getString("text")
+
+                    val decodedPath = decodePolyline(overviewPolyline)
+
+                    runOnUiThread {
+                        googleMap.addPolyline(
+                            PolylineOptions()
+                                .addAll(decodedPath)
+                                .color(Color.BLUE)
+                                .width(10f)
+                        )
+                        policeInfoTextView.append("\n🚗 ETA: $duration")
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread {
+                    Toast.makeText(this@Map, "Failed to get directions", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun decodePolyline(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+
+            val p = LatLng(lat.toDouble() / 1E5, lng.toDouble() / 1E5)
+            poly.add(p)
+        }
+
+        return poly
     }
 }

@@ -23,6 +23,16 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_contact)
 
+
+
+        val backButton: ImageButton = findViewById(R.id.backButton)
+        backButton.setOnClickListener {
+            // This will close the current activity and return to previous screen
+            finish()
+        }
+
+
+
         try {
             // Retrieve the username from the intent
             username = intent.getStringExtra("EXTRA_USERNAME")

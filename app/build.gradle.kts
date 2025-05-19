@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.places)
 
+
     // Firebase dependencies
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.auth.ktx)
@@ -75,4 +76,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
