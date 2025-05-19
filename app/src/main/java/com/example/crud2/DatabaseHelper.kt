@@ -11,6 +11,24 @@ class FirebaseHelper(context: Context) {
     private val auth = FirebaseAuth.getInstance()
     private var currentUserId: String? = null
 
+    companion object {
+        private val usersCollection = Firebase.firestore.collection("users")
+    }
+
+    // Check if a user exists by username
+    fun checkUserExists(username: String, callback: (Boolean) -> Unit) {
+        usersCollection
+            .whereEqualTo("username", username)
+            .get()
+            .addOnSuccessListener { result ->
+                callback(!result.isEmpty)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseHelper", "Error checking user existence: ${exception.message}")
+                callback(false)
+            }
+    }
+
     // Validate user by username and password
     fun validateUserByUsernameAndPassword(
         username: String,
@@ -38,7 +56,7 @@ class FirebaseHelper(context: Context) {
             }
     }
 
-    // Set current user ID
+    // Set current user ID by username
     fun setCurrentUser(username: String, callback: (Boolean) -> Unit) {
         Log.d("FirebaseHelper", "Setting current user for username: $username")
 
@@ -166,7 +184,6 @@ class FirebaseHelper(context: Context) {
     }
 
     // Update a contact by phone number
-    // In FirebaseHelper.kt
     fun updateContact(originalContact: Contact, updatedContact: Contact, callback: (Boolean) -> Unit) {
         val userId = getCurrentUserId()
         if (userId == null) {
@@ -175,15 +192,13 @@ class FirebaseHelper(context: Context) {
             return
         }
 
-        // Get the contact reference by ORIGINAL phone number
         usersCollection.document(userId)
             .collection("contacts")
-            .whereEqualTo("phone", originalContact.phone)  // Use the original phone to find the record
+            .whereEqualTo("phone", originalContact.phone)
             .get()
             .addOnSuccessListener { result ->
                 if (!result.isEmpty) {
                     for (document in result.documents) {
-                        // Update the contact with new values
                         document.reference.update(
                             "name", updatedContact.name,
                             "phone", updatedContact.phone,
@@ -210,10 +225,6 @@ class FirebaseHelper(context: Context) {
     // Sign out the current user
     fun signOut() {
         currentUserId = null
-    }
-
-    companion object {
-        private val usersCollection = Firebase.firestore.collection("users")
     }
 }
 

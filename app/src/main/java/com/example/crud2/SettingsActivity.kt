@@ -27,7 +27,6 @@ class SettingsActivity : AppCompatActivity() {
         // Initialize UI elements
         val logoutButton = findViewById<Button>(R.id.logoutButton)
 
-
         // Log out button handling
         logoutButton.setOnClickListener {
             logoutUser()
@@ -39,29 +38,15 @@ class SettingsActivity : AppCompatActivity() {
 
     // Handle back button in action bar
     override fun onSupportNavigateUp(): Boolean {
-        navigateBack()
+        onBackPressed()
         return true
     }
 
     // Handle device back button press
     override fun onBackPressed() {
-        navigateBack()
-    }
-
-    // Common method to handle back navigation
-    private fun navigateBack() {
-        // Navigate back to Dashboard activity
-        val intent = Intent(this, Dashboard::class.java)
-
-        // Get the username to pass back to Dashboard
-        val username = getSharedPreferences("user_prefs", MODE_PRIVATE)
-            .getString("username", "Guest")
-        intent.putExtra("EXTRA_USERNAME", username)
-
-        // Clear back stack and set Dashboard as the new task root
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-        startActivity(intent)
-        finish() // Finish this activity to prevent it from staying in memory
+        // Simply finish this activity and return to the previous activity (Dashboard)
+        // The login state is maintained in SharedPreferences
+        finish()
     }
 
     // Save theme preference in SharedPreferences

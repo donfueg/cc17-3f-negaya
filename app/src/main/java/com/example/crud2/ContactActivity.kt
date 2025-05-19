@@ -23,46 +23,59 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_contact)
 
-
-
         val backButton: ImageButton = findViewById(R.id.backButton)
         backButton.setOnClickListener {
-            // This will close the current activity and return to previous screen
             finish()
         }
 
-
-
         try {
-            // Retrieve the username from the intent
+            // Get username from intent or fallback to SharedPreferences
             username = intent.getStringExtra("EXTRA_USERNAME")
+            if (username.isNullOrEmpty()) {
+                val sharedPreferences = getSharedPreferences("user_prefs", MODE_PRIVATE)
+                username = sharedPreferences.getString("username", null)
+            }
+
             Log.d("ContactActivity", "Received username: $username")
 
+            // If username is still null or empty, redirect to login
             if (username.isNullOrEmpty()) {
+                Log.e("ContactActivity", "Username is null or empty, redirecting to login")
                 handleSessionError()
                 return
             }
 
-            // Initialize Firebase with proper error handling
             try {
                 dbHelper = FirebaseHelper(this)
                 Log.d("ContactActivity", "FirebaseHelper initialized")
 
-                dbHelper.setCurrentUser(username!!) { success ->
-                    if (success) {
-                        Log.d("ContactActivity", "User session validated successfully")
-                        runOnUiThread {
-                            try {
-                                initializeUI()
-                            } catch (e: Exception) {
-                                Log.e("ContactActivity", "Error initializing UI: ${e.message}")
-                                e.printStackTrace()
-                                showError("Error initializing UI components")
+                // Verify user exists in Firebase before proceeding
+                dbHelper.checkUserExists(username!!) { userExists ->
+                    if (userExists) {
+                        dbHelper.setCurrentUser(username!!) { success ->
+                            if (success) {
+                                Log.d("ContactActivity", "User session validated successfully")
+                                runOnUiThread {
+                                    try {
+                                        initializeUI()
+                                    } catch (e: Exception) {
+                                        Log.e("ContactActivity", "Error initializing UI: ${e.message}")
+                                        e.printStackTrace()
+                                        showError("Error initializing UI components")
+                                    }
+                                }
+                            } else {
+                                Log.e("ContactActivity", "Session validation failed")
+                                runOnUiThread { handleSessionError() }
                             }
                         }
                     } else {
-                        Log.e("ContactActivity", "Session validation failed")
-                        runOnUiThread { handleSessionError() }
+                        Log.e("ContactActivity", "User does not exist in database: $username")
+                        runOnUiThread {
+                            // Clear invalid user data
+                            getSharedPreferences("user_prefs", MODE_PRIVATE).edit().clear().apply()
+                            handleSessionError()
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -89,21 +102,18 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
 
     private fun initializeUI() {
         try {
-            // Update the TextView to display the logged-in username
             val usernameTextView: TextView = findViewById(R.id.textViewUsername)
             usernameTextView.text = "Hello, $username"
 
-            // Setup RecyclerView
             contactsRecyclerView = findViewById(R.id.contactsRecyclerView)
             contactsRecyclerView.layoutManager = LinearLayoutManager(this)
 
             contactList = mutableListOf()
 
-            // Initialize adapter with proper listener type
             contactAdapter = ContactAdapter(
                 contactList,
                 this,
-                onDeleteClickListener = { contact ->  // Fixed: Ensure this only takes a single Contact
+                onDeleteClickListener = { contact ->
                     deleteContact(contact)
                 },
                 onEditClickListener = { contact ->
@@ -113,16 +123,13 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
 
             contactsRecyclerView.adapter = contactAdapter
 
-            // Load contacts
             loadContacts()
 
-            // Setup add contact button
             val addContactButton: ImageButton = findViewById(R.id.imageButton)
             addContactButton.setOnClickListener {
                 showAddContactDialog()
             }
 
-            // Setup search
             setupSearchView()
 
         } catch (e: Exception) {
@@ -169,7 +176,6 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
             finish()
         } catch (e: Exception) {
             Log.e("ContactActivity", "Error navigating to login: ${e.message}")
-            // Last resort - just finish this activity
             finish()
         }
     }
@@ -247,7 +253,6 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
     private fun showEditContactDialog(contact: Contact) {
         try {
             val dialog = EditContactDialogFragment(contact) { updatedContact ->
-                // Here we use both the original contact and the updated contact
                 dbHelper.updateContact(contact, updatedContact) { success ->
                     runOnUiThread {
                         if (success) {
