@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
@@ -34,6 +33,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
     private var firebaseLocation: LatLng? = null
     private var locationFetched: Boolean = false
+    private var hasZoomedInitially = false  // ✅ Zoom only once
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,9 +49,8 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
         showPoliceButton = findViewById(R.id.showPoliceButton)
         policeInfoTextView = findViewById(R.id.policeInfoTextView)
-        backButton = findViewById(R.id.backButton)  // Added back button reference
+        backButton = findViewById(R.id.backButton)
 
-        // Back button click listener to close the activity
         backButton.setOnClickListener {
             onBackPressed()
         }
@@ -59,9 +58,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         showPoliceButton.setOnClickListener {
             firebaseLocation?.let { location ->
                 findNearestPoliceStation(location.latitude, location.longitude)
-            } ?: run {
-                Toast.makeText(this, "Unable to fetch current location", Toast.LENGTH_SHORT).show()
-            }
+            } ?: Toast.makeText(this, "Unable to fetch current location", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -95,7 +92,13 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                             .title("Your Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                     )
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firebaseLocation!!, 15f))
+
+                    if (!hasZoomedInitially) {
+                        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(firebaseLocation!!, 15f))
+                        hasZoomedInitially = true
+                    } else {
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLng(firebaseLocation!!))
+                    }
                 } else {
                     Toast.makeText(this@Map, "Location data not available", Toast.LENGTH_SHORT).show()
                 }
@@ -163,11 +166,8 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                             .title("Nearest Police Station")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
                     )
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
-
-                    firebaseLocation?.let { userLoc ->
-                        drawRouteAndShowETA(userLoc, it)
-                    }
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
+                    firebaseLocation?.let { userLoc -> drawRouteAndShowETA(userLoc, it) }
                 }
 
                 nearestSnapshot?.let {
@@ -188,7 +188,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val results = FloatArray(1)
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-        return results[0].toDouble() / 1000 // in km
+        return results[0].toDouble() / 1000
     }
 
     private fun drawRouteAndShowETA(origin: LatLng, destination: LatLng) {
