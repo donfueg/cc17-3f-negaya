@@ -34,8 +34,6 @@
         app:layout_constraintTop_toBottomOf="@+id/imageView2" />
 
     <!-- Email Input -->
-
-    <!-- Username Input -->
     <EditText
         android:id="@+id/email"
         android:layout_width="0dp"
@@ -51,6 +49,7 @@
         app:layout_constraintTop_toBottomOf="@+id/textView3"
         app:layout_constraintWidth_percent="0.8" />
 
+    <!-- Username Input -->
     <EditText
         android:id="@+id/contact"
         android:layout_width="0dp"
@@ -67,22 +66,44 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintWidth_percent="0.8" />
 
-    <!-- Phone Number Input -->
-    <EditText
-        android:id="@+id/phone"
+    <!-- Phone Number Input Container -->
+    <LinearLayout
+        android:id="@+id/phoneContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
-        android:backgroundTint="@color/white"
-        android:hint="Phone number"
-        android:textColor="#1A1A19"
-        android:textColorHint="#1A1A19"
-        android:textSize="17sp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/contact"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintWidth_percent="0.8" />
+        app:layout_constraintWidth_percent="0.8">
+
+        <!-- Country Code Prefix -->
+        <TextView
+            android:id="@+id/countryPrefix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+63 "
+            android:textColor="#1A1A19"
+            android:textSize="17sp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="8dp" />
+
+        <!-- Phone Number Input -->
+        <EditText
+            android:id="@+id/phone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="@color/white"
+            android:hint="Phone Number"
+            android:inputType="phone"
+            android:maxLength="10"
+            android:textColor="#1A1A19"
+            android:textColorHint="#999999"
+            android:textSize="17sp" />
+    </LinearLayout>
 
     <!-- Password Input -->
     <EditText
@@ -92,18 +113,17 @@
         android:layout_marginTop="20dp"
         android:backgroundTint="@color/white"
         android:hint="Password"
+        android:inputType="textPassword"
         android:textColor="#1A1A19"
         android:textColorHint="#1A1A19"
         android:textSize="17sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/phone"
+        app:layout_constraintTop_toBottomOf="@+id/phoneContainer"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintWidth_percent="0.8" />
 
     <!-- Register Button -->
-
-    <!-- Already have an account? TextView -->
     <Button
         android:id="@+id/register"
         android:layout_width="0dp"
@@ -118,6 +138,7 @@
         app:layout_constraintTop_toBottomOf="@+id/password"
         app:layout_constraintWidth_percent="0.8" />
 
+    <!-- Already have an account? TextView -->
     <TextView
         android:id="@+id/login"
         android:layout_width="wrap_content"

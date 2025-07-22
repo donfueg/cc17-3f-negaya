@@ -49,10 +49,16 @@ class Register : AppCompatActivity() {
             val phone = phoneEditText.text.toString().trim()
             val password = passwordEditText.text.toString().trim()
 
+            if (phone.length != 10 || !phone.matches(Regex("^9\\d{9}$"))) {
+                Toast.makeText(this, "Enter a valid 10-digit phone number starting with 9", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val fullPhone = "+63$phone"
+
             if (email.isNotEmpty() && username.isNotEmpty() && phone.isNotEmpty() && password.isNotEmpty()) {
                 if (isPhoneValid(phone)) {
-                    // First create the account in Firebase Auth
-                    createAccount(email, username, phone, password)
+                    createAccount(email, username, fullPhone, password)
                 } else {
                     Toast.makeText(this, "Invalid phone number. Use digits only.", Toast.LENGTH_SHORT).show()
                 }
@@ -66,7 +72,7 @@ class Register : AppCompatActivity() {
             val intent = Intent(this, Login::class.java)
             startActivity(intent)
         }
-    }
+    } // ← this closes onCreate()
 
     // Function to create an account with Firebase Authentication
     private fun createAccount(email: String, username: String, phone: String, password: String) {
@@ -111,7 +117,6 @@ class Register : AppCompatActivity() {
 
     // Function to send OTP to the phone number
     private fun sendOtpToPhone(phoneNumber: String, userId: String) {
-        // Format the phone number with country code if not already formatted
         val formattedPhone = if (phoneNumber.startsWith("+")) phoneNumber else "+$phoneNumber"
 
         try {
@@ -121,7 +126,6 @@ class Register : AppCompatActivity() {
                 .setActivity(this)
                 .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
                     override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
-                        // Auto-verification completed (in some devices)
                         Toast.makeText(this@Register, "Verification completed automatically!", Toast.LENGTH_SHORT).show()
                         updateUserVerificationStatus(userId, true)
                         navigateToMainActivity()
@@ -131,8 +135,7 @@ class Register : AppCompatActivity() {
                         Toast.makeText(this@Register, "Verification failed: ${e.message}", Toast.LENGTH_LONG).show()
                     }
 
-                    override fun onCodeSent(verificationId: String, token: com.google.firebase.auth.PhoneAuthProvider.ForceResendingToken) {
-                        // OTP has been sent to the phone number
+                    override fun onCodeSent(verificationId: String, token: PhoneAuthProvider.ForceResendingToken) {
                         Toast.makeText(this@Register, "OTP sent successfully!", Toast.LENGTH_SHORT).show()
                         navigateToVerification(phoneNumber, verificationId, userId)
                     }
@@ -184,7 +187,7 @@ class Register : AppCompatActivity() {
         return sb.toString()
     }
 
-    // Function to validate phone number
+    // Function to validate phone number format
     private fun isPhoneValid(phone: String): Boolean {
         return phone.matches(Regex("^[0-9+]+$"))
     }
