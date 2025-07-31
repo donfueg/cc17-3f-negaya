@@ -116,23 +116,27 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
+        // Real-time location updates
         locationRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val lat = snapshot.child("lat").getValue(Double::class.java)
-                val lng = snapshot.child("lng").getValue(Double::class.java)
+                val lat = snapshot.child("latitude").getValue(Double::class.java)
+                val lng = snapshot.child("longitude").getValue(Double::class.java)
 
                 if (lat != null && lng != null && ::mMap.isInitialized) {
                     val location = LatLng(lat, lng)
                     currentMarker?.remove()
                     currentMarker = mMap.addMarker(
-                        MarkerOptions().position(location).title("Tracked Location")
+                        MarkerOptions().position(location).title("Real-Time Location")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                     )
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
+                } else {
+                    showToast("Location data is missing or invalid.")
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Optional: showToast("Location update error.")
+                showToast("Failed to fetch location: ${error.message}")
             }
         })
     }
@@ -143,9 +147,10 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         mMap.uiSettings.isMyLocationButtonEnabled = true
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED) {
+            PackageManager.PERMISSION_GRANTED
+        ) {
             mMap.isMyLocationEnabled = true
-            getCurrentLocation()
+            getCurrentLocation() // optional — displays user’s own location once
         } else {
             ActivityCompat.requestPermissions(
                 this,
@@ -157,16 +162,17 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     private fun getCurrentLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
-            PackageManager.PERMISSION_GRANTED) return
+            PackageManager.PERMISSION_GRANTED
+        ) return
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
                 val currentLatLng = LatLng(it.latitude, it.longitude)
-                currentMarker?.remove()
-                currentMarker = mMap.addMarker(
+                mMap.addMarker(
                     MarkerOptions().position(currentLatLng).title("Your Location")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                 )
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 12f))
             }
         }
     }
@@ -184,7 +190,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
-            grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
             mMap.isMyLocationEnabled = true
             getCurrentLocation()
         }

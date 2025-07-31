@@ -32,14 +32,12 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var policeDatabase: DatabaseReference
 
     private var firebaseLocation: LatLng? = null
-    private var locationFetched: Boolean = false
-    private var hasZoomedInitially = false  // ✅ Zoom only once
+    private var hasZoomedInitially = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map2)
 
-        // Initialize Firebase references
         locationDatabase = FirebaseDatabase.getInstance().getReference("location")
         policeDatabase = FirebaseDatabase.getInstance("https://ahhh-41e71-default-rtdb.firebaseio.com")
             .getReference("location/police_stations")
@@ -51,31 +49,27 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         policeInfoTextView = findViewById(R.id.policeInfoTextView)
         backButton = findViewById(R.id.backButton)
 
-        backButton.setOnClickListener {
-            onBackPressed()
-        }
+        backButton.setOnClickListener { onBackPressed() }
 
         showPoliceButton.setOnClickListener {
             firebaseLocation?.let { location ->
                 findNearestPoliceStation(location.latitude, location.longitude)
-            } ?: Toast.makeText(this, "Unable to fetch current location", Toast.LENGTH_SHORT).show()
+            } ?: Toast.makeText(this, "Fetching current location...", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
-            googleMap.isMyLocationEnabled = true
-            googleMap.uiSettings.isMyLocationButtonEnabled = true
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            googleMap.isMyLocationEnabled = false
+            googleMap.uiSettings.isMyLocationButtonEnabled = false
         }
 
-        fetchLocationFromFirebase()
+        listenToRealtimeLocation()
     }
 
-    private fun fetchLocationFromFirebase() {
+    private fun listenToRealtimeLocation() {
         locationDatabase.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val latitude = snapshot.child("latitude").getValue(Double::class.java)
@@ -83,13 +77,12 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
                 if (latitude != null && longitude != null) {
                     firebaseLocation = LatLng(latitude, longitude)
-                    locationFetched = true
 
                     googleMap.clear()
                     googleMap.addMarker(
                         MarkerOptions()
                             .position(firebaseLocation!!)
-                            .title("Your Location")
+                            .title("Your Location (Realtime)")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                     )
 
@@ -99,23 +92,16 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                     } else {
                         googleMap.animateCamera(CameraUpdateFactory.newLatLng(firebaseLocation!!))
                     }
-                } else {
-                    Toast.makeText(this@Map, "Location data not available", Toast.LENGTH_SHORT).show()
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@Map, "Error reading Firebase data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@Map, "Failed to load real-time location", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
-    private fun findNearestPoliceStation(latitude: Double, longitude: Double) {
-        if (!locationFetched) {
-            Toast.makeText(this, "Fetching location...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+    private fun findNearestPoliceStation(lat: Double, lng: Double) {
         policeDatabase.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
@@ -124,11 +110,12 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 googleMap.clear()
+
                 firebaseLocation?.let {
                     googleMap.addMarker(
                         MarkerOptions()
                             .position(it)
-                            .title("Your Location")
+                            .title("Your Location (Realtime)")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                     )
                 }
@@ -142,19 +129,11 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                     val policeLng = stationSnapshot.child("longitude").getValue(Double::class.java)
                     if (policeLat == null || policeLng == null) continue
 
-                    val stationLocation = LatLng(policeLat, policeLng)
-                    val distance = calculateDistance(latitude, longitude, policeLat, policeLng)
-
-                    googleMap.addMarker(
-                        MarkerOptions()
-                            .position(stationLocation)
-                            .title("Police Station")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                    )
+                    val distance = calculateDistance(lat, lng, policeLat, policeLng)
 
                     if (distance < minDistance) {
                         minDistance = distance
-                        nearestStation = stationLocation
+                        nearestStation = LatLng(policeLat, policeLng)
                         nearestSnapshot = stationSnapshot
                     }
                 }
@@ -164,23 +143,21 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                         MarkerOptions()
                             .position(it)
                             .title("Nearest Police Station")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                     )
                     googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
                     firebaseLocation?.let { userLoc -> drawRouteAndShowETA(userLoc, it) }
                 }
 
                 nearestSnapshot?.let {
-                    val name = it.child("Station Number").getValue(String::class.java)
-                        ?: it.child("station number").getValue(String::class.java)
-                        ?: "Unknown Station"
+                    val name = it.key ?: "Unnamed Station"
                     val contact = it.child("Contact").getValue(String::class.java) ?: "No contact"
-                    policeInfoTextView.text = "📍 $name\n📞 $contact"
+                    policeInfoTextView.text = "\uD83D\uDEA8 $name\n\uD83D\uDCDE $contact"
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(this@Map, "Failed to fetch police data", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@Map, "Error reading police stations", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -188,11 +165,11 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val results = FloatArray(1)
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-        return results[0].toDouble() / 1000
+        return results[0].toDouble()
     }
 
     private fun drawRouteAndShowETA(origin: LatLng, destination: LatLng) {
-        val apiKey = "AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI"
+        val apiKey = "YOUR_GOOGLE_MAPS_API_KEY"
         val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                 "origin=${origin.latitude},${origin.longitude}" +
                 "&destination=${destination.latitude},${destination.longitude}" +
@@ -222,7 +199,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                                 .color(Color.BLUE)
                                 .width(10f)
                         )
-                        policeInfoTextView.append("\n🚗 ETA: $duration")
+                        policeInfoTextView.append("\n\uD83D\uDE97 ETA: $duration")
                     }
                 }
             } catch (e: Exception) {
