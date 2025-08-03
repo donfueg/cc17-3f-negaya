@@ -91,7 +91,24 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Add User Button -->
+
+
     <!-- Bottom Navigation -->
+    <Button
+        android:id="@+id/addUserButton"
+        android:layout_width="267dp"
+        android:layout_height="57dp"
+        android:layout_marginTop="40dp"
+        android:background="@drawable/rounded_button"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="Add  User"
+        android:textColor="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/heartRateTextView" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/customBottomNav"
         android:layout_width="match_parent"

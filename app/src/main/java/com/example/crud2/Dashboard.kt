@@ -4,9 +4,9 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.text.InputType
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
@@ -16,6 +16,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.google.firebase.database.*
+import kotlin.random.Random
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -93,6 +94,10 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             })
         }
 
+        findViewById<Button>(R.id.addUserButton).setOnClickListener {
+            showAddUserDialog()
+        }
+
         findViewById<Button>(R.id.emergency).setOnClickListener {
             startActivity(Intent(this, EmergencyActivity::class.java))
         }
@@ -116,7 +121,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
-        // Real-time location updates
+        // Real-time marker for general location
         locationRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val lat = snapshot.child("latitude").getValue(Double::class.java)
@@ -129,9 +134,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         MarkerOptions().position(location).title("Real-Time Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                     )
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 15f))
-                } else {
-                    showToast("Location data is missing or invalid.")
                 }
             }
 
@@ -139,6 +141,108 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 showToast("Failed to fetch location: ${error.message}")
             }
         })
+
+        // Listen for added users under location/users
+        locationRef.child("users").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (::mMap.isInitialized) {
+                    mMap.clear()
+
+                    // Add the real-time red marker again
+                    locationRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(data: DataSnapshot) {
+                            val lat = data.child("latitude").getValue(Double::class.java)
+                            val lng = data.child("longitude").getValue(Double::class.java)
+                            if (lat != null && lng != null) {
+                                val loc = LatLng(lat, lng)
+                                mMap.addMarker(
+                                    MarkerOptions().position(loc).title("Real-Time Location")
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                                )
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {}
+                    })
+
+                    for (userSnap in snapshot.children) {
+                        val name = userSnap.child("name").getValue(String::class.java)
+                        val lat = userSnap.child("latitude").getValue(Double::class.java)
+                        val lng = userSnap.child("longitude").getValue(Double::class.java)
+
+                        if (name != null && lat != null && lng != null) {
+                            val userLatLng = LatLng(lat, lng)
+                            mMap.addMarker(
+                                MarkerOptions()
+                                    .position(userLatLng)
+                                    .title(name)
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                            )
+                        }
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                showToast("Failed to load user markers: ${error.message}")
+            }
+        })
+    }
+
+    private fun showAddUserDialog() {
+        val nameInput = EditText(this).apply {
+            hint = "Enter Name"
+        }
+
+        val mobileInput = EditText(this).apply {
+            hint = "Enter Mobile Number"
+            inputType = InputType.TYPE_CLASS_PHONE
+        }
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 40, 50, 10)
+            addView(nameInput)
+            addView(mobileInput)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Add New User")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+                val name = nameInput.text.toString().trim()
+                val mobile = mobileInput.text.toString().trim()
+
+                if (name.isEmpty() || mobile.isEmpty()) {
+                    showToast("Please enter both name and mobile number.")
+                    return@setPositiveButton
+                }
+
+                val randomLocation = getRandomBaguioLocation()
+                val newUserRef = locationRef.child("users").push()
+                val userData = mapOf(
+                    "name" to name,
+                    "mobile" to mobile,
+                    "latitude" to randomLocation.latitude,
+                    "longitude" to randomLocation.longitude
+                )
+
+                newUserRef.setValue(userData)
+                    .addOnSuccessListener {
+                        showToast("User added successfully.")
+                    }
+                    .addOnFailureListener {
+                        showToast("Failed to add user: ${it.message}")
+                    }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun getRandomBaguioLocation(): LatLng {
+        val randomLat = Random.nextDouble(16.385, 16.420)
+        val randomLng = Random.nextDouble(120.580, 120.620)
+        return LatLng(randomLat, randomLng)
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -150,7 +254,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             PackageManager.PERMISSION_GRANTED
         ) {
             mMap.isMyLocationEnabled = true
-            getCurrentLocation() // optional — displays user’s own location once
+            getCurrentLocation()
         } else {
             ActivityCompat.requestPermissions(
                 this,
