@@ -30,6 +30,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var dbHelper: FirebaseHelper
     private lateinit var locationRef: DatabaseReference
     private lateinit var heartRateRef: DatabaseReference
+    private lateinit var userContactsRef: DatabaseReference // New reference for user-specific contacts
+    private var currentUsername: String = ""
 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
@@ -49,6 +51,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
+        currentUsername = username
+
         val isLoggedIn = getSharedPreferences("user_prefs", MODE_PRIVATE)
             .getBoolean("is_logged_in", false)
 
@@ -61,6 +65,10 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         dbHelper = FirebaseHelper(this)
         locationRef = FirebaseDatabase.getInstance().getReference("location")
         heartRateRef = FirebaseDatabase.getInstance().getReference("heartrate")
+
+        // Get user ID from Firebase Auth or use username as fallback
+        val userId = getCurrentUserId() // You'll need to implement this method
+        userContactsRef = FirebaseDatabase.getInstance().getReference("user_contacts").child(userId)
 
         dbHelper.checkUserExists(username) { exists ->
             runOnUiThread {
@@ -75,6 +83,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 setupDashboard(username)
             }
         }
+    }
+
+    private fun getCurrentUserId(): String {
+        // If you're using Firebase Auth, get the current user's UID
+        // return FirebaseAuth.getInstance().currentUser?.uid ?: currentUsername
+
+        // For now, using username as fallback - but ideally use Firebase Auth UID
+        return currentUsername
     }
 
     private fun setupDashboard(username: String) {
@@ -142,20 +158,21 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
-        // Listen for added users under location/users
-        locationRef.child("users").addValueEventListener(object : ValueEventListener {
+        // Listen for USER-SPECIFIC contacts instead of global users
+        userContactsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (::mMap.isInitialized) {
+                    // Clear existing markers
                     mMap.clear()
 
-                    // Add the real-time red marker again
+                    // Re-add the real-time red marker
                     locationRef.addListenerForSingleValueEvent(object : ValueEventListener {
                         override fun onDataChange(data: DataSnapshot) {
                             val lat = data.child("latitude").getValue(Double::class.java)
                             val lng = data.child("longitude").getValue(Double::class.java)
                             if (lat != null && lng != null) {
                                 val loc = LatLng(lat, lng)
-                                mMap.addMarker(
+                                currentMarker = mMap.addMarker(
                                     MarkerOptions().position(loc).title("Real-Time Location")
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                                 )
@@ -165,10 +182,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         override fun onCancelled(error: DatabaseError) {}
                     })
 
-                    for (userSnap in snapshot.children) {
-                        val name = userSnap.child("name").getValue(String::class.java)
-                        val lat = userSnap.child("latitude").getValue(Double::class.java)
-                        val lng = userSnap.child("longitude").getValue(Double::class.java)
+                    // Add markers for this user's contacts only
+                    for (contactSnap in snapshot.children) {
+                        val name = contactSnap.child("name").getValue(String::class.java)
+                        val lat = contactSnap.child("latitude").getValue(Double::class.java)
+                        val lng = contactSnap.child("longitude").getValue(Double::class.java)
 
                         if (name != null && lat != null && lng != null) {
                             val userLatLng = LatLng(lat, lng)
@@ -184,14 +202,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                showToast("Failed to load user markers: ${error.message}")
+                showToast("Failed to load contact markers: ${error.message}")
             }
         })
     }
 
     private fun showAddUserDialog() {
         val nameInput = EditText(this).apply {
-            hint = "Enter Name"
+            hint = "Enter Contact Name"
         }
 
         val mobileInput = EditText(this).apply {
@@ -207,7 +225,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Add New User")
+            .setTitle("Add New Contact")
             .setView(layout)
             .setPositiveButton("Add") { _, _ ->
                 val name = nameInput.text.toString().trim()
@@ -219,20 +237,24 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 val randomLocation = getRandomBaguioLocation()
-                val newUserRef = locationRef.child("users").push()
-                val userData = mapOf(
+
+                // Save to user-specific contacts instead of global location/users
+                val newContactRef = userContactsRef.push()
+                val contactData = mapOf(
                     "name" to name,
                     "mobile" to mobile,
                     "latitude" to randomLocation.latitude,
-                    "longitude" to randomLocation.longitude
+                    "longitude" to randomLocation.longitude,
+                    "addedBy" to currentUsername,
+                    "addedAt" to System.currentTimeMillis()
                 )
 
-                newUserRef.setValue(userData)
+                newContactRef.setValue(contactData)
                     .addOnSuccessListener {
-                        showToast("User added successfully.")
+                        showToast("Contact added successfully.")
                     }
                     .addOnFailureListener {
-                        showToast("Failed to add user: ${it.message}")
+                        showToast("Failed to add contact: ${it.message}")
                     }
             }
             .setNegativeButton("Cancel", null)
@@ -293,11 +315,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
             grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
-            mMap.isMyLocationEnabled = true
-            getCurrentLocation()
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                mMap.isMyLocationEnabled = true
+                getCurrentLocation()
+            }
         }
     }
 }
