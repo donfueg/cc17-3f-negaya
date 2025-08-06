@@ -77,27 +77,25 @@
             android:contentDescription="Live map view showing current location" />
     </androidx.cardview.widget.CardView>
 
-    <!-- Add User Button (this opens the bottom sheet) -->
+    <!-- Add User Button (opens bottom sheet) -->
     <Button
         android:id="@+id/addUserButton"
         android:layout_width="302dp"
         android:layout_height="34dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/rounded_button"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:text="Add User"
+        android:text="Users"
         android:textColor="@android:color/white"
+        android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@id/customBottomNav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Bottom Navigation -->
+    <!-- Custom Bottom Navigation -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/customBottomNav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
         android:background="@drawable/rounded_gradient_header"
         android:padding="10dp"
         app:layout_constraintBottom_toBottomOf="parent"

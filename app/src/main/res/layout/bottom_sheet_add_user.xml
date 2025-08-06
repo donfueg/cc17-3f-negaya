@@ -1,66 +1,45 @@
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/bottomSheetLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:background="@drawable/rounded_sheet_background">
+    android:padding="16dp">
 
     <EditText
         android:id="@+id/inputName"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:hint="Name"
         android:inputType="textPersonName"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="@drawable/rounded_editext"
-        android:layout_marginBottom="12dp"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
-        android:importantForAutofill="yes" />
+        android:layout_marginBottom="8dp"/>
 
     <EditText
         android:id="@+id/inputMobile"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:hint="Mobile Number"
         android:inputType="phone"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="@drawable/rounded_editext"
-        android:layout_marginBottom="16dp"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
-        android:importantForAutofill="yes" />
+        android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/bottomSheetAddUserButton"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:text="Add User"
         android:background="@drawable/rounded_button"
         android:textColor="@android:color/white"
-        android:textAllCaps="false"
-        android:textSize="18sp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="12dp" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#DDDDDD"
-        android:layout_marginBottom="16dp" />
-
+    <!-- Main user item -->
     <TextView
+        android:id="@+id/mainUserInfoTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Users List"
-        android:textColor="@android:color/darker_gray"
-        android:textStyle="bold"
-        android:textSize="14sp"
-        android:paddingBottom="8dp" />
+        android:textSize="16sp"
+        android:padding="16dp"
+        android:textColor="@android:color/holo_red_dark"
+        android:background="@android:color/darker_gray" />
 
     <ScrollView
         android:layout_width="match_parent"

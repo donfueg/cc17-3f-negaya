@@ -224,33 +224,20 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val mobileInput = view.findViewById<EditText>(R.id.inputMobile)
         val addBtn = view.findViewById<Button>(R.id.bottomSheetAddUserButton)
         val bottomUserListContainer = view.findViewById<LinearLayout>(R.id.bottomUserListContainer)
+        val mainUserInfoTextView = view.findViewById<TextView>(R.id.mainUserInfoTextView)
 
-        // Clear container before adding views
-        bottomUserListContainer.removeAllViews()
-
-        // Create main user TextView and add it at the top
-        val mainUserInfoTextView = TextView(this).apply {
-            text = "You: $currentUsername - HR: ${mainUserHeartRate ?: "Loading..."} bpm"
-            textSize = 16f
-            setPadding(16, 8, 16, 8)
-            setTextColor(resources.getColor(android.R.color.holo_red_dark))
-            setBackgroundColor(resources.getColor(android.R.color.darker_gray))
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                val pos = mainUserMarker?.position
-                if (pos != null) {
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f))
-                } else {
-                    showToast("Main user location not available yet.")
-                }
+        // Set up main user text
+        mainUserInfoTextView.text = "You: $currentUsername - HR: ${mainUserHeartRate ?: "Loading..."} bpm"
+        mainUserInfoTextView.setOnClickListener {
+            val pos = mainUserMarker?.position
+            if (pos != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f))
+            } else {
+                showToast("Main user location not available yet.")
             }
         }
-        bottomUserListContainer.addView(mainUserInfoTextView)
 
-        updateUserListInBottomSheet(bottomUserListContainer)
-
-        // Listen to heart rate updates to update mainUserInfoTextView dynamically
+        // Update heart rate live
         heartRateRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hr = snapshot.getValue(Int::class.java)
@@ -261,6 +248,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
             override fun onCancelled(error: DatabaseError) {}
         })
+
+        updateUserListInBottomSheet(bottomUserListContainer)
 
         addBtn.setOnClickListener {
             val name = nameInput.text.toString().trim()
@@ -306,11 +295,12 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
+
+    private var selectedUserItemView: TextView? = null // tracks which user is selected
+
     private fun updateUserListInBottomSheet(container: LinearLayout) {
-        // Remove all but the first child (main user info TextView) to avoid duplicates
-        if (container.childCount > 1) {
-            container.removeViews(1, container.childCount - 1)
-        }
+        // Remove all views from the container
+        container.removeAllViews()
 
         userContactsRef.get().addOnSuccessListener { snapshot ->
             for (contactSnap in snapshot.children) {
@@ -320,22 +310,35 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 val lng = contactSnap.child("longitude").getValue(Double::class.java)
 
                 if (name != null && heartRate != null && lat != null && lng != null) {
-                    val item = TextView(this).apply {
+                    val userItem = TextView(this).apply {
                         text = "$name - HR: $heartRate bpm"
                         textSize = 16f
-                        setPadding(16, 8, 16, 8)
+                        setPadding(16, 24, 16, 24)
                         setTextColor(resources.getColor(android.R.color.black))
                         setBackgroundColor(resources.getColor(android.R.color.white))
+                        isClickable = true
+                        isFocusable = true
+
                         setOnClickListener {
+                            // Move camera to user's location
                             val target = LatLng(lat, lng)
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15f))
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 16f))
+
+                            // Reset previous selection background
+                            selectedUserItemView?.setBackgroundColor(resources.getColor(android.R.color.white))
+
+                            // Highlight current selected
+                            setBackgroundColor(resources.getColor(android.R.color.holo_blue_light))
+                            selectedUserItemView = this
                         }
                     }
-                    container.addView(item)
+                    container.addView(userItem)
                 }
             }
         }
     }
+
+
 
     private fun isValidPhilippineMobileNumber(mobile: String): Boolean {
         val cleanMobile = mobile.replace(Regex("[^0-9]"), "")
