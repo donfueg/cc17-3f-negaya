@@ -206,7 +206,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         // Update map marker
                         currentMarker?.remove()
                         currentMarker = mMap.addMarker(
-                            MarkerOptions().position(currentLatLng!!).title("$currentUsername (You)")
+                            MarkerOptions().position(currentLatLng!!).title("$currentUsername")
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
                         )
 
@@ -292,8 +292,20 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 val name = nameInput.text.toString().trim()
                 val mobile = mobileInput.text.toString().trim()
 
-                if (name.isEmpty() || mobile.isEmpty()) {
-                    showToast("Please enter both name and mobile number.")
+                // Validate input fields
+                if (name.isEmpty()) {
+                    showToast("Please enter contact name.")
+                    return@setPositiveButton
+                }
+
+                if (mobile.isEmpty()) {
+                    showToast("Please enter mobile number.")
+                    return@setPositiveButton
+                }
+
+                // Validate mobile number format
+                if (!isValidPhilippineMobileNumber(mobile)) {
+                    showToast("Invalid mobile number. Must be 11 digits starting with '09'.")
                     return@setPositiveButton
                 }
 
@@ -323,6 +335,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val randomLat = Random.nextDouble(16.385, 16.420)
         val randomLng = Random.nextDouble(120.580, 120.620)
         return LatLng(randomLat, randomLng)
+    }
+
+    private fun isValidPhilippineMobileNumber(mobile: String): Boolean {
+        // Remove any spaces or special characters
+        val cleanMobile = mobile.replace(Regex("[^0-9]"), "")
+
+        // Check if it's exactly 11 digits and starts with "09"
+        return cleanMobile.length == 11 && cleanMobile.startsWith("09")
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
