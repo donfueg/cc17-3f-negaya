@@ -23,14 +23,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var mMap: GoogleMap
     private var currentMarker: Marker? = null
+    private var mainUserTextView: TextView? = null
 
     private lateinit var usernameTextView: TextView
-    private lateinit var heartRateTextView: TextView
-
     private lateinit var dbHelper: FirebaseHelper
     private lateinit var locationRef: DatabaseReference
     private lateinit var heartRateRef: DatabaseReference
-    private lateinit var userContactsRef: DatabaseReference // New reference for user-specific contacts
+    private lateinit var userContactsRef: DatabaseReference
     private var currentUsername: String = ""
 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
@@ -40,7 +39,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         setContentView(R.layout.activity_dashboard)
 
         usernameTextView = findViewById(R.id.textView5)
-        heartRateTextView = findViewById(R.id.heartRateTextView)
 
         val username = intent.getStringExtra("EXTRA_USERNAME")
             ?: getSharedPreferences("user_prefs", MODE_PRIVATE).getString("username", null)
@@ -66,8 +64,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         locationRef = FirebaseDatabase.getInstance().getReference("location")
         heartRateRef = FirebaseDatabase.getInstance().getReference("heartrate")
 
-        // Get user ID from Firebase Auth or use username as fallback
-        val userId = getCurrentUserId() // You'll need to implement this method
+        val userId = getCurrentUserId()
         userContactsRef = FirebaseDatabase.getInstance().getReference("user_contacts").child(userId)
 
         dbHelper.checkUserExists(username) { exists ->
@@ -80,20 +77,16 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 usernameTextView.text = "Hello $username"
-                setupDashboard(username)
+                setupDashboard()
             }
         }
     }
 
     private fun getCurrentUserId(): String {
-        // If you're using Firebase Auth, get the current user's UID
-        // return FirebaseAuth.getInstance().currentUser?.uid ?: currentUsername
-
-        // For now, using username as fallback - but ideally use Firebase Auth UID
         return currentUsername
     }
 
-    private fun setupDashboard(username: String) {
+    private fun setupDashboard() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -106,7 +99,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
         findViewById<Button>(R.id.contact).setOnClickListener {
             startActivity(Intent(this, ContactActivity::class.java).apply {
-                putExtra("EXTRA_USERNAME", username)
+                putExtra("EXTRA_USERNAME", currentUsername)
             })
         }
 
@@ -126,92 +119,160 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
-        heartRateRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val heartRate = snapshot.getValue(Int::class.java)
-                heartRateTextView.text = "Heart Rate: ${heartRate ?: "--"} bpm"
-            }
+        val userListContainer = findViewById<LinearLayout>(R.id.userListContainer)
 
-            override fun onCancelled(error: DatabaseError) {
-                heartRateTextView.text = "Heart Rate: --"
-            }
-        })
+        // Setup real-time main user updates
+        setupMainUserRealTimeUpdates(userListContainer)
 
-        // Real-time marker for general location
-        locationRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val lat = snapshot.child("latitude").getValue(Double::class.java)
-                val lng = snapshot.child("longitude").getValue(Double::class.java)
-
-                if (lat != null && lng != null && ::mMap.isInitialized) {
-                    val location = LatLng(lat, lng)
-                    currentMarker?.remove()
-                    currentMarker = mMap.addMarker(
-                        MarkerOptions().position(location).title("Real-Time Location")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                    )
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {
-                showToast("Failed to fetch location: ${error.message}")
-            }
-        })
-
-        // Listen for USER-SPECIFIC contacts instead of global users
+        // Setup contacts listener
         userContactsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (::mMap.isInitialized) {
-                    // Clear existing markers
-                    mMap.clear()
+                if (!::mMap.isInitialized) return
 
-                    // Re-add the real-time red marker
-                    locationRef.addListenerForSingleValueEvent(object : ValueEventListener {
-                        override fun onDataChange(data: DataSnapshot) {
-                            val lat = data.child("latitude").getValue(Double::class.java)
-                            val lng = data.child("longitude").getValue(Double::class.java)
-                            if (lat != null && lng != null) {
-                                val loc = LatLng(lat, lng)
-                                currentMarker = mMap.addMarker(
-                                    MarkerOptions().position(loc).title("Real-Time Location")
-                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                                )
+                // Clear only contact items and markers, preserve main user
+                clearContactsOnly(userListContainer)
+
+                // Add all contacts
+                for (contactSnap in snapshot.children) {
+                    val name = contactSnap.child("name").getValue(String::class.java)
+                    val contactLat = contactSnap.child("latitude").getValue(Double::class.java)
+                    val contactLng = contactSnap.child("longitude").getValue(Double::class.java)
+                    val heartRate = contactSnap.child("heartrate").getValue(Int::class.java) ?: Random.nextInt(60, 100)
+
+                    if (name != null && contactLat != null && contactLng != null) {
+                        val userLatLng = LatLng(contactLat, contactLng)
+                        mMap.addMarker(
+                            MarkerOptions()
+                                .position(userLatLng)
+                                .title(name)
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                        )
+
+                        val userItem = TextView(this@Dashboard).apply {
+                            text = "$name - HR: $heartRate bpm"
+                            textSize = 16f
+                            setPadding(16, 8, 16, 8)
+                            setTextColor(resources.getColor(android.R.color.black))
+                            setBackgroundColor(resources.getColor(android.R.color.white))
+                            tag = "contact"
+                            setOnClickListener {
+                                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
                             }
                         }
-
-                        override fun onCancelled(error: DatabaseError) {}
-                    })
-
-                    // Add markers for this user's contacts only
-                    for (contactSnap in snapshot.children) {
-                        val name = contactSnap.child("name").getValue(String::class.java)
-                        val lat = contactSnap.child("latitude").getValue(Double::class.java)
-                        val lng = contactSnap.child("longitude").getValue(Double::class.java)
-
-                        if (name != null && lat != null && lng != null) {
-                            val userLatLng = LatLng(lat, lng)
-                            mMap.addMarker(
-                                MarkerOptions()
-                                    .position(userLatLng)
-                                    .title(name)
-                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                            )
-                        }
+                        userListContainer.addView(userItem)
                     }
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                showToast("Failed to load contact markers: ${error.message}")
+                showToast("Failed to load contacts: ${error.message}")
             }
         })
     }
 
-    private fun showAddUserDialog() {
-        val nameInput = EditText(this).apply {
-            hint = "Enter Contact Name"
+    private fun setupMainUserRealTimeUpdates(userListContainer: LinearLayout) {
+        var currentHeartRate: Int = 83 // Current value from your database
+        var currentLatLng: LatLng? = null
+
+        // Listen for heart rate changes in real-time
+        heartRateRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(data: DataSnapshot) {
+                val heartRate = data.getValue(Int::class.java)
+                if (heartRate != null) {
+                    currentHeartRate = heartRate
+                    runOnUiThread {
+                        updateMainUserDisplay(userListContainer, currentHeartRate, currentLatLng)
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                showToast("Heart rate error: ${error.message}")
+            }
+        })
+
+        // Listen for location changes in real-time
+        locationRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(data: DataSnapshot) {
+                if (!::mMap.isInitialized) return
+
+                val lat = data.child("latitude").getValue(Double::class.java)
+                val lng = data.child("longitude").getValue(Double::class.java)
+
+                if (lat != null && lng != null) {
+                    currentLatLng = LatLng(lat, lng)
+
+                    runOnUiThread {
+                        // Update map marker
+                        currentMarker?.remove()
+                        currentMarker = mMap.addMarker(
+                            MarkerOptions().position(currentLatLng!!).title("$currentUsername (You)")
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        )
+
+                        // Update list display
+                        updateMainUserDisplay(userListContainer, currentHeartRate, currentLatLng)
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                showToast("Location error: ${error.message}")
+            }
+        })
+    }
+
+    private fun updateMainUserDisplay(userListContainer: LinearLayout, heartRate: Int, latLng: LatLng?) {
+        if (latLng == null) return
+
+        // Create main user item if it doesn't exist
+        if (mainUserTextView == null) {
+            mainUserTextView = TextView(this@Dashboard).apply {
+                textSize = 16f
+                setPadding(16, 8, 16, 8)
+                setTextColor(resources.getColor(android.R.color.black))
+                setBackgroundColor(resources.getColor(android.R.color.holo_red_light))
+                tag = "mainuser"
+            }
+            userListContainer.addView(mainUserTextView, 0)
         }
 
+        // Update the text and click listener
+        mainUserTextView?.apply {
+            text = "$currentUsername (You) - HR: $heartRate bpm"
+            setOnClickListener {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+            }
+        }
+    }
+
+    private fun clearContactsOnly(userListContainer: LinearLayout) {
+        // Clear map completely and re-add main user marker if it exists
+        mMap.clear()
+        currentMarker?.let {
+            val position = it.position
+            val title = it.title
+            currentMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .title(title)
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+            )
+        }
+
+        // Remove only contact items from list
+        val contactItems = mutableListOf<TextView>()
+        for (i in 0 until userListContainer.childCount) {
+            val child = userListContainer.getChildAt(i)
+            if (child.tag == "contact") {
+                contactItems.add(child as TextView)
+            }
+        }
+        contactItems.forEach { userListContainer.removeView(it) }
+    }
+
+    private fun showAddUserDialog() {
+        val nameInput = EditText(this).apply { hint = "Enter Contact Name" }
         val mobileInput = EditText(this).apply {
             hint = "Enter Mobile Number"
             inputType = InputType.TYPE_CLASS_PHONE
@@ -237,25 +298,22 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 }
 
                 val randomLocation = getRandomBaguioLocation()
+                val heartRate = Random.nextInt(60, 100)
 
-                // Save to user-specific contacts instead of global location/users
                 val newContactRef = userContactsRef.push()
                 val contactData = mapOf(
                     "name" to name,
                     "mobile" to mobile,
                     "latitude" to randomLocation.latitude,
                     "longitude" to randomLocation.longitude,
+                    "heartrate" to heartRate,
                     "addedBy" to currentUsername,
                     "addedAt" to System.currentTimeMillis()
                 )
 
                 newContactRef.setValue(contactData)
-                    .addOnSuccessListener {
-                        showToast("Contact added successfully.")
-                    }
-                    .addOnFailureListener {
-                        showToast("Failed to add contact: ${it.message}")
-                    }
+                    .addOnSuccessListener { showToast("Contact added successfully.") }
+                    .addOnFailureListener { showToast("Failed to add contact: ${it.message}") }
             }
             .setNegativeButton("Cancel", null)
             .show()

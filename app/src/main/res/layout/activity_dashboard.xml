@@ -37,9 +37,9 @@
             android:textSize="18sp"
             android:textColor="@android:color/white"
             android:textStyle="italic"
+            android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textView4"
-            android:layout_marginTop="4dp" />
+            app:layout_constraintTop_toBottomOf="@id/textView4" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Section Title -->
@@ -77,38 +77,50 @@
             android:contentDescription="Live map view showing current location" />
     </androidx.cardview.widget.CardView>
 
-    <!-- Heart Rate -->
-    <TextView
-        android:id="@+id/heartRateTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Heart Rate: --"
-        android:textSize="18sp"
-        android:textColor="#FF4444"
-        android:textStyle="bold"
-        android:layout_marginTop="8dp"
+    <!-- Scrollable User Box inside CardView -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/userListCard"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="6dp"
         app:layout_constraintTop_toBottomOf="@id/cardView"
+        app:layout_constraintBottom_toTopOf="@id/addUserButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp">
+
+            <LinearLayout
+                android:id="@+id/userListContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </androidx.cardview.widget.CardView>
 
     <!-- Add User Button -->
-
-
-    <!-- Bottom Navigation -->
     <Button
         android:id="@+id/addUserButton"
         android:layout_width="267dp"
         android:layout_height="57dp"
-        android:layout_marginTop="40dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/rounded_button"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
-        android:text="Add  User"
+        android:text="Add User"
         android:textColor="@android:color/white"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/customBottomNav"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/heartRateTextView" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Bottom Navigation -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/customBottomNav"
         android:layout_width="match_parent"
