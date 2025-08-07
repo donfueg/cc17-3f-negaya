@@ -1,27 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/bottomSheetLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@android:color/white">
 
+    <!-- Input for Name -->
     <EditText
         android:id="@+id/inputName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Name"
+        android:textColorHint="#88000000"
         android:inputType="textPersonName"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp"/>
 
+    <!-- Input for Mobile Number -->
     <EditText
         android:id="@+id/inputMobile"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Mobile Number"
+        android:textColorHint="#88000000"
         android:inputType="phone"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginBottom="12dp"
+        android:background="@android:drawable/edit_text"
+        android:padding="12dp"/>
 
+    <!-- Add User Button -->
     <Button
         android:id="@+id/bottomSheetAddUserButton"
         android:layout_width="match_parent"
@@ -29,18 +40,21 @@
         android:text="Add User"
         android:background="@drawable/rounded_button"
         android:textColor="@android:color/white"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="16dp" />
 
-    <!-- Main user item -->
+    <!-- Main User Info Text -->
     <TextView
         android:id="@+id/mainUserInfoTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Main user info will appear here"
         android:textSize="16sp"
         android:padding="16dp"
         android:textColor="@android:color/holo_red_dark"
-        android:background="@android:color/darker_gray" />
+        android:background="@android:color/darker_gray"
+        android:layout_marginBottom="12dp" />
 
+    <!-- Scrollable User List -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="250dp"
@@ -51,7 +65,8 @@
             android:id="@+id/bottomUserListContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:paddingBottom="16dp" />
 
     </ScrollView>
 

@@ -27,35 +27,38 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="16dp"
+        android:gravity="center_vertical">
 
         <!-- +63 Prefix -->
         <EditText
             android:id="@+id/contactPhonePrefixEditText"
-            android:layout_width="0dp"
+            android:layout_width="70dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="+63"
-            android:padding="12dp"
+            android:textColor="#000000"
             android:textSize="18sp"
+            android:padding="12dp"
             android:background="@drawable/rounded_edittext"
             android:inputType="none"
             android:focusable="false"
-            android:focusableInTouchMode="false" />
+            android:focusableInTouchMode="false"
+            android:enabled="false" />
 
         <!-- Phone Number -->
         <EditText
             android:id="@+id/contactPhoneEditText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="3"
+            android:layout_weight="1"
             android:hint="Phone Number"
             android:textColorHint="#80000000"
             android:textColor="#000000"
             android:padding="12dp"
             android:textSize="18sp"
             android:background="@drawable/rounded_edittext"
-            android:inputType="phone" />
+            android:inputType="phone"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
     <!-- Add Contact Button -->
