@@ -68,8 +68,52 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="16dp" />
+            android:paddingBottom="16dp">
 
+            <!-- Sample User Row with 3 columns -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:background="@android:color/white"
+                android:gravity="center_vertical">
+
+                <!-- User Name -->
+                <TextView
+                    android:id="@+id/userNameTextView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="3"
+                    android:text="User Name"
+                    android:textSize="16sp"
+                    android:textColor="#000000" />
+
+                <!-- Live Heart Rate -->
+                <TextView
+                    android:id="@+id/userLiveHeartRateTextView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:text="80 bpm"
+                    android:textSize="16sp"
+                    android:textColor="@android:color/holo_green_dark"
+                    android:gravity="center" />
+
+                <!-- Last Updated Heart Rate -->
+                <TextView
+                    android:id="@+id/userLastUpdatedHeartRateTextView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:text="75 bpm"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/holo_red_dark"
+                    android:gravity="end" />
+            </LinearLayout>
+
+        </LinearLayout>
     </ScrollView>
 
 </LinearLayout>

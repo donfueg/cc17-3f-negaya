@@ -102,6 +102,10 @@ class ContactActivity : AppCompatActivity(), ContactAdapter.OnContactClickListen
 
     private fun initializeUI() {
         try {
+            // Change header title to "Contacts"
+            val headerTextView: TextView = findViewById(R.id.textView4)
+            headerTextView.text = "Contacts"
+
             val usernameTextView: TextView = findViewById(R.id.textViewUsername)
             usernameTextView.text = "Hello, $username"
 
