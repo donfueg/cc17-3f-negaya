@@ -1,16 +1,24 @@
 package com.example.crud2
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.text.bold
+import androidx.core.text.buildSpannedString
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -34,6 +42,8 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private var firebaseLocation: LatLng? = null
     private var hasZoomedInitially = false
 
+    private val REQUEST_CALL_PERMISSION = 1234
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map2)
@@ -56,6 +66,9 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 findNearestPoliceStation(location.latitude, location.longitude)
             } ?: Toast.makeText(this, "Fetching current location...", Toast.LENGTH_SHORT).show()
         }
+
+        // Enable clickable links on TextView
+        policeInfoTextView.movementMethod = LinkMovementMethod.getInstance()
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -151,8 +164,30 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
 
                 nearestSnapshot?.let {
                     val name = it.key ?: "Unnamed Station"
-                    val contact = it.child("Contact").getValue(String::class.java) ?: "No contact"
-                    policeInfoTextView.text = "\uD83D\uDEA8 $name\n\uD83D\uDCDE $contact"
+                    val contact = it.child("Contact").getValue(String::class.java)
+                    val contactText = if (contact.isNullOrBlank()) "No contact info available" else contact.trim()
+
+                    // Build clickable SpannableString for Contact
+                    val displayText = buildSpannedString {
+                        append("\uD83D\uDEA8 $name\n")
+                        bold { append("\uD83D\uDCDE ") }
+                        if (contactText == "No contact info available") {
+                            append(contactText)
+                        } else {
+                            // Make the contact clickable
+                            val start = length
+                            append(contactText)
+                            val end = length
+
+                            setSpan(object : ClickableSpan() {
+                                override fun onClick(widget: View) {
+                                    dialPhoneNumber(contactText)
+                                }
+                            }, start, end, 0)
+                        }
+                    }
+
+                    policeInfoTextView.text = displayText
                 }
             }
 
@@ -162,6 +197,23 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         })
     }
 
+    private fun dialPhoneNumber(phoneNumber: String) {
+        if (phoneNumber.isBlank() || phoneNumber == "No contact info available") {
+            Toast.makeText(this, "No valid contact number to dial", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(Intent.ACTION_DIAL).apply {
+            data = Uri.parse("tel:$phoneNumber")
+        }
+        // No CALL_PHONE permission needed for ACTION_DIAL
+        if (intent.resolveActivity(packageManager) != null) {
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "No dialer app available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val results = FloatArray(1)
         Location.distanceBetween(lat1, lon1, lat2, lon2, results)
@@ -169,7 +221,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun drawRouteAndShowETA(origin: LatLng, destination: LatLng) {
-        val apiKey = "YOUR_GOOGLE_MAPS_API_KEY"
+        val apiKey = "AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI"
         val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                 "origin=${origin.latitude},${origin.longitude}" +
                 "&destination=${destination.latitude},${destination.longitude}" +
