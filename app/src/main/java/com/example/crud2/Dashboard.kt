@@ -18,6 +18,9 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.database.*
 import kotlin.random.Random
+import android.text.Editable
+import android.text.TextWatcher
+
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -33,6 +36,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private var currentUsername: String = ""
 
     private val addedUserMarkers = mutableMapOf<String, Marker>()
+    private val heartRateUpdateTimer = android.os.Handler(android.os.Looper.getMainLooper())
+    private val heartRateUpdateRunnable = object : Runnable {
+        override fun run() {
+            updateContactsHeartRates()
+            heartRateUpdateTimer.postDelayed(this, 10000) // Update every 10 seconds
+        }
+    }
 
     private var mainUserHeartRate: Int? = null
     private var mainUserLastUpdatedHeartRate: Int? = null
@@ -84,6 +94,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 usernameTextView.text = "Hello $username"
                 setupDashboard()
                 setupRealtimeListeners()
+                startHeartRateUpdates()
             }
         }
     }
@@ -125,6 +136,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun setupRealtimeListeners() {
+        // Main user location
         locationRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val lat = snapshot.child("latitude").getValue(Double::class.java)
@@ -132,14 +144,17 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 if (lat != null && lng != null && ::mMap.isInitialized) {
                     val newLocation = LatLng(lat, lng)
                     runOnUiThread {
-                        mainUserMarker?.remove()
-                        mainUserMarker = mMap.addMarker(
-                            MarkerOptions()
-                                .position(newLocation)
-                                .title("You (Main User)")
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                        )
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 15f))
+                        if (mainUserMarker == null) {
+                            mainUserMarker = mMap.addMarker(
+                                MarkerOptions()
+                                    .position(newLocation)
+                                    .title("You (Main User)")
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                            )
+                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(newLocation, 15f))
+                        } else {
+                            mainUserMarker?.position = newLocation
+                        }
                     }
                 }
             }
@@ -149,13 +164,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
+        // Main user heart rate
         heartRateRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hr = snapshot.getValue(Int::class.java)
                 if (hr != null) {
                     mainUserLastUpdatedHeartRate = mainUserHeartRate
                     mainUserHeartRate = hr
-
                     runOnUiThread {
                         usernameTextView.text = "Hello $currentUsername"
                     }
@@ -167,6 +182,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
+        // Contacts real-time update
         userContactsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 runOnUiThread {
@@ -212,156 +228,204 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun showUserBottomSheet() {
-        val view = layoutInflater.inflate(R.layout.bottom_sheet_add_user, null)
         val dialog = BottomSheetDialog(this)
-        dialog.setContentView(view)
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_add_user, null)
 
-        val nameInput = view.findViewById<EditText>(R.id.inputName)
-        val mobileInput = view.findViewById<EditText>(R.id.inputMobile)
-        val addBtn = view.findViewById<Button>(R.id.bottomSheetAddUserButton)
-        val bottomUserListContainer = view.findViewById<LinearLayout>(R.id.bottomUserListContainer)
+        val addUserName = view.findViewById<EditText>(R.id.inputName)
+        val addUserMobile = view.findViewById<EditText>(R.id.inputMobile)
+        val addUserButton = view.findViewById<Button>(R.id.bottomSheetAddUserButton)
+        val userListLayout = view.findViewById<LinearLayout>(R.id.bottomUserListContainer)
         val mainUserInfoTextView = view.findViewById<TextView>(R.id.mainUserInfoTextView)
 
-        fun updateMainUserInfoText() {
-            val liveHRText = mainUserHeartRate?.let { "$it bpm" } ?: "N/A"
-            val lastHRText = mainUserLastUpdatedHeartRate?.let { "$it bpm" } ?: "N/A"
-            mainUserInfoTextView.text =
-                "You: $currentUsername - Live HR: $liveHRText - Last Updated HR: $lastHRText"
-        }
+        // Display main user info and make it clickable
+        val mainUserHR = mainUserHeartRate ?: 0
+        val lastUserHR = mainUserLastUpdatedHeartRate ?: 0
+        mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainUserHR bpm | Last HR: $lastUserHR bpm"
 
-        updateMainUserInfoText()
-
+        // Make main user info clickable
         mainUserInfoTextView.setOnClickListener {
-            val pos = mainUserMarker?.position
-            if (pos != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f))
-            } else {
-                showToast("Main user location not available yet.")
-            }
+            showMainUserOnMap()
+            dialog.dismiss()
         }
 
-        heartRateRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val hr = snapshot.getValue(Int::class.java)
-                if (hr != null) {
-                    mainUserLastUpdatedHeartRate = mainUserHeartRate
-                    mainUserHeartRate = hr
-                    runOnUiThread { updateMainUserInfoText() }
+        // Set +63 prefix initially
+        addUserMobile.setText("+63")
+        addUserMobile.setSelection(addUserMobile.text.length)
+
+        // Prevent removing +63 prefix
+        addUserMobile.addTextChangedListener(object : TextWatcher {
+            private var isEditing = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (isEditing) return
+                isEditing = true
+                if (!s.toString().startsWith("+63")) {
+                    addUserMobile.setText("+63")
+                    addUserMobile.setSelection(addUserMobile.text.length)
                 }
+                isEditing = false
             }
-            override fun onCancelled(error: DatabaseError) {}
         })
 
-        fun populateUserList() {
-            bottomUserListContainer.removeAllViews()
-            userContactsRef.get().addOnSuccessListener { snapshot ->
-                for (contactSnap in snapshot.children) {
-                    val name = contactSnap.child("name").getValue(String::class.java)
-                    val lastHeartRate = contactSnap.child("heartrate").getValue(Int::class.java) ?: 0
-                    val lat = contactSnap.child("latitude").getValue(Double::class.java)
-                    val lng = contactSnap.child("longitude").getValue(Double::class.java)
+        // Add User Button Click
+        addUserButton.setOnClickListener {
+            val name = addUserName.text.toString().trim()
+            val mobile = addUserMobile.text.toString().trim()
 
-                    if (name != null && lat != null && lng != null) {
-                        val rowLayout = LinearLayout(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT
-                            )
-                            orientation = LinearLayout.HORIZONTAL
-                            setPadding(8, 16, 8, 16)
-                            gravity = Gravity.CENTER_VERTICAL
-                        }
-
-                        val nameView = TextView(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3f)
-                            text = name
-                            textSize = 16f
-                            setTextColor(resources.getColor(android.R.color.black))
-                        }
-
-                        val liveHRView = TextView(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f)
-                            text = "${Random.nextInt(60, 100)} bpm" // Random BPM instantly
-                            textSize = 16f
-                            setTextColor(resources.getColor(android.R.color.holo_green_dark))
-                            gravity = Gravity.CENTER
-                        }
-
-                        val lastHRView = TextView(this).apply {
-                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f)
-                            text = "$lastHeartRate bpm"
-                            textSize = 16f
-                            setTextColor(resources.getColor(android.R.color.holo_red_dark))
-                            gravity = Gravity.END
-                        }
-
-                        rowLayout.addView(nameView)
-                        rowLayout.addView(liveHRView)
-                        rowLayout.addView(lastHRView)
-
-                        rowLayout.setOnClickListener {
-                            val target = LatLng(lat, lng)
-                            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 16f))
-                            for (i in 0 until bottomUserListContainer.childCount) {
-                                bottomUserListContainer.getChildAt(i).setBackgroundColor(resources.getColor(android.R.color.white))
-                            }
-                            rowLayout.setBackgroundColor(resources.getColor(android.R.color.holo_blue_light))
-                        }
-
-                        bottomUserListContainer.addView(rowLayout)
-                    }
-                }
-            }
-        }
-
-        populateUserList()
-
-        addBtn.setOnClickListener {
-            val name = nameInput.text.toString().trim()
-            val mobile = mobileInput.text.toString().trim()
-
-            if (name.isEmpty()) {
-                showToast("Please enter contact name.")
+            if (name.isEmpty() || mobile.isEmpty()) {
+                showToast("Please enter both name and mobile number")
                 return@setOnClickListener
             }
 
-            if (!isValidPhilippineMobileNumber(mobile)) {
-                showToast("Invalid mobile number.")
+            val numberPart = mobile.removePrefix("+63")
+            if (!numberPart.matches(Regex("\\d{10}"))) {
+                showToast("Mobile number must be in format +639XXXXXXXXX")
                 return@setOnClickListener
             }
 
             val randomLocation = getRandomBaguioLocation()
-            val heartRate = Random.nextInt(60, 100)
-
-            val newContactRef = userContactsRef.push()
-            val contactData = mapOf(
+            val newUserRef = userContactsRef.push()
+            val userData = mapOf(
                 "name" to name,
                 "mobile" to mobile,
                 "latitude" to randomLocation.latitude,
                 "longitude" to randomLocation.longitude,
-                "heartrate" to heartRate,
-                "addedBy" to currentUsername,
-                "addedAt" to System.currentTimeMillis()
+                "heartrate" to Random.nextInt(60, 100),
+                "lastHeartrate" to Random.nextInt(60, 100)
             )
 
-            newContactRef.setValue(contactData)
+            newUserRef.setValue(userData)
                 .addOnSuccessListener {
-                    showToast("Contact added successfully.")
-                    nameInput.text.clear()
-                    mobileInput.text.clear()
-                    populateUserList()
+                    showToast("User added successfully")
+                    addUserName.text.clear()
+                    addUserMobile.setText("+63")
+                    addUserMobile.setSelection(addUserMobile.text.length)
                 }
-                .addOnFailureListener {
-                    showToast("Failed to add contact.")
+                .addOnFailureListener { e ->
+                    showToast("Failed to add user: ${e.message}")
                 }
         }
 
+        // Populate user list with 4-column layout (including Locate button)
+        userContactsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                userListLayout.removeAllViews()
+
+                for (userSnapshot in snapshot.children) {
+                    val name = userSnapshot.child("name").getValue(String::class.java) ?: ""
+                    val heartrate = userSnapshot.child("heartrate").getValue(Int::class.java) ?: 0
+                    val lastHeartrate = userSnapshot.child("lastHeartrate").getValue(Int::class.java) ?: 0
+                    val lat = userSnapshot.child("latitude").getValue(Double::class.java) ?: 0.0
+                    val lng = userSnapshot.child("longitude").getValue(Double::class.java) ?: 0.0
+
+                    // Create horizontal layout for each user row
+                    val userRow = LinearLayout(this@Dashboard)
+                    userRow.orientation = LinearLayout.HORIZONTAL
+                    userRow.setPadding(8, 8, 8, 8)
+                    userRow.setBackgroundColor(android.graphics.Color.parseColor("#F5F5F5"))
+                    val layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    layoutParams.setMargins(0, 4, 0, 4)
+                    userRow.layoutParams = layoutParams
+                    userRow.gravity = Gravity.CENTER_VERTICAL
+
+                    // User Name (weight 2.5)
+                    val nameTextView = TextView(this@Dashboard)
+                    nameTextView.text = name
+                    nameTextView.textSize = 14f
+                    nameTextView.setTextColor(android.graphics.Color.BLACK)
+                    val nameParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2.5f)
+                    nameTextView.layoutParams = nameParams
+
+                    // Current Heart Rate (weight 2)
+                    val currentHRTextView = TextView(this@Dashboard)
+                    currentHRTextView.text = "Now: $heartrate"
+                    currentHRTextView.textSize = 12f
+                    currentHRTextView.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                    currentHRTextView.gravity = Gravity.CENTER
+                    val currentHRParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
+                    currentHRTextView.layoutParams = currentHRParams
+
+                    // Last Heart Rate (weight 2)
+                    val lastHRTextView = TextView(this@Dashboard)
+                    lastHRTextView.text = "Last: $lastHeartrate"
+                    lastHRTextView.textSize = 12f
+                    lastHRTextView.setTextColor(android.graphics.Color.parseColor("#F44336"))
+                    lastHRTextView.gravity = Gravity.CENTER
+                    val lastHRParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
+                    lastHRTextView.layoutParams = lastHRParams
+
+                    // Locate Button (weight 1.5)
+                    val locateButton = Button(this@Dashboard)
+                    locateButton.text = "Locate"
+                    locateButton.textSize = 10f
+                    locateButton.setTextColor(android.graphics.Color.WHITE)
+                    locateButton.setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
+                    val buttonParams = LinearLayout.LayoutParams(0, 32.dpToPx(), 1.5f)
+                    buttonParams.setMargins(4.dpToPx(), 0, 0, 0)
+                    locateButton.layoutParams = buttonParams
+                    locateButton.setPadding(4.dpToPx(), 4.dpToPx(), 4.dpToPx(), 4.dpToPx())
+
+                    // Set click listener for the locate button
+                    locateButton.setOnClickListener {
+                        showUserOnMap(name, lat, lng, heartrate)
+                        dialog.dismiss()
+                    }
+
+                    // Add all views to the row
+                    userRow.addView(nameTextView)
+                    userRow.addView(currentHRTextView)
+                    userRow.addView(lastHRTextView)
+                    userRow.addView(locateButton)
+
+                    userListLayout.addView(userRow)
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                showToast("Failed to load users: ${error.message}")
+            }
+        })
+
+        dialog.setContentView(view)
         dialog.show()
     }
 
-    private fun isValidPhilippineMobileNumber(mobile: String): Boolean {
-        val cleanMobile = mobile.replace(Regex("[^0-9]"), "")
-        return cleanMobile.length == 11 && cleanMobile.startsWith("09")
+    private fun showMainUserOnMap() {
+        if (::mMap.isInitialized && mainUserMarker != null) {
+            val userLocation = mainUserMarker!!.position
+
+            // Move camera to main user's location
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
+
+            // Show main user marker info window
+            mainUserMarker!!.showInfoWindow()
+
+            // Show toast with main user details
+            val currentHR = mainUserHeartRate ?: 0
+            showToast("$currentUsername (You) - Heart Rate: $currentHR bpm")
+        }
+    }
+
+    private fun showUserOnMap(name: String, lat: Double, lng: Double, heartrate: Int) {
+        if (::mMap.isInitialized) {
+            val userLocation = LatLng(lat, lng)
+
+            // Move camera to user's location
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
+
+            // Find the marker for this user and show info window
+            val marker = addedUserMarkers.values.find { it.title == name }
+            if (marker != null) {
+                marker.showInfoWindow()
+            }
+
+            // Optional: Show a toast with user details
+            showToast("$name - Heart Rate: $heartrate bpm")
+        }
     }
 
     private fun getRandomBaguioLocation(): LatLng {
@@ -379,30 +443,12 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             PackageManager.PERMISSION_GRANTED
         ) {
             mMap.isMyLocationEnabled = true
-            getCurrentLocation()
         } else {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 LOCATION_PERMISSION_REQUEST_CODE
             )
-        }
-    }
-
-    private fun getCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
-            PackageManager.PERMISSION_GRANTED
-        ) return
-
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                val currentLatLng = LatLng(it.latitude, it.longitude)
-                mMap.addMarker(
-                    MarkerOptions().position(currentLatLng).title("Your Location")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
-                )
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 12f))
-            }
         }
     }
 
@@ -414,25 +460,34 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         finish()
     }
 
-    private fun showToast(msg: String) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    private fun startHeartRateUpdates() {
+        heartRateUpdateTimer.post(heartRateUpdateRunnable)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE &&
-            grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-        ) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                mMap.isMyLocationEnabled = true
-                getCurrentLocation()
+    private fun updateContactsHeartRates() {
+        userContactsRef.get().addOnSuccessListener { snapshot ->
+            for (contactSnap in snapshot.children) {
+                val currentHR = contactSnap.child("heartrate").getValue(Int::class.java) ?: 60
+                val newHR = Random.nextInt(60, 120)
+
+                // Update heart rate values
+                contactSnap.ref.child("lastHeartrate").setValue(currentHR)
+                contactSnap.ref.child("heartrate").setValue(newHR)
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        heartRateUpdateTimer.removeCallbacks(heartRateUpdateRunnable)
+    }
+
+    // Extension function to convert dp to pixels
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
+    }
+
+    private fun showToast(msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 }

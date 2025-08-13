@@ -27,6 +27,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Mobile Number"
+        android:text="+63"
         android:textColor="#000000"
         android:textColorHint="#88000000"
         android:inputType="phone"
@@ -70,7 +71,7 @@
             android:orientation="vertical"
             android:paddingBottom="16dp">
 
-            <!-- Sample User Row with 3 columns -->
+            <!-- Sample User Row with 4 columns including Locate Button -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -84,9 +85,9 @@
                     android:id="@+id/userNameTextView"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="3"
+                    android:layout_weight="2.5"
                     android:text="User Name"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textColor="#000000" />
 
                 <!-- Live Heart Rate -->
@@ -95,8 +96,8 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
-                    android:text="80 bpm"
-                    android:textSize="16sp"
+                    android:text="Now: 80"
+                    android:textSize="12sp"
                     android:textColor="@android:color/holo_green_dark"
                     android:gravity="center" />
 
@@ -106,11 +107,25 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="2"
-                    android:text="75 bpm"
-                    android:textSize="16sp"
+                    android:text="Last: 75"
+                    android:textSize="12sp"
                     android:textStyle="bold"
                     android:textColor="@android:color/holo_red_dark"
-                    android:gravity="end" />
+                    android:gravity="center" />
+
+                <!-- Locate Button -->
+                <Button
+                    android:id="@+id/locateButton"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1.5"
+                    android:layout_marginStart="4dp"
+                    android:text="Locate"
+                    android:textSize="10sp"
+                    android:textColor="@android:color/white"
+                    android:background="#2196F3"
+                    android:padding="4dp" />
+
             </LinearLayout>
 
         </LinearLayout>
