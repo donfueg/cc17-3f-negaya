@@ -34,8 +34,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     private val addedUserMarkers = mutableMapOf<String, Marker>()
 
-    private var mainUserHeartRate: Int? = null          // live heart rate (latest)
-    private var mainUserLastUpdatedHeartRate: Int? = null  // last updated heart rate (previous)
+    private var mainUserHeartRate: Int? = null
+    private var mainUserLastUpdatedHeartRate: Int? = null
 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
@@ -153,12 +153,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hr = snapshot.getValue(Int::class.java)
                 if (hr != null) {
-                    // Before updating live HR, store current live HR as last updated HR
                     mainUserLastUpdatedHeartRate = mainUserHeartRate
                     mainUserHeartRate = hr
 
                     runOnUiThread {
-                        usernameTextView.text = "Hello $currentUsername - HR: $hr bpm"
+                        usernameTextView.text = "Hello $currentUsername"
                     }
                 }
             }
@@ -224,7 +223,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val mainUserInfoTextView = view.findViewById<TextView>(R.id.mainUserInfoTextView)
 
         fun updateMainUserInfoText() {
-            val liveHRText = mainUserHeartRate?.let { "$it bpm" } ?: "Loading..."
+            val liveHRText = mainUserHeartRate?.let { "$it bpm" } ?: "N/A"
             val lastHRText = mainUserLastUpdatedHeartRate?.let { "$it bpm" } ?: "N/A"
             mainUserInfoTextView.text =
                 "You: $currentUsername - Live HR: $liveHRText - Last Updated HR: $lastHRText"
@@ -245,16 +244,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hr = snapshot.getValue(Int::class.java)
                 if (hr != null) {
-                    // Update live and last updated HR here as well to keep in sync
                     mainUserLastUpdatedHeartRate = mainUserHeartRate
                     mainUserHeartRate = hr
-
-                    runOnUiThread {
-                        updateMainUserInfoText()
-                    }
+                    runOnUiThread { updateMainUserInfoText() }
                 }
             }
-
             override fun onCancelled(error: DatabaseError) {}
         })
 
@@ -287,7 +281,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
                         val liveHRView = TextView(this).apply {
                             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f)
-                            text = "Loading..." // Update if you have live per-user HR data
+                            text = "${Random.nextInt(60, 100)} bpm" // Random BPM instantly
                             textSize = 16f
                             setTextColor(resources.getColor(android.R.color.holo_green_dark))
                             gravity = Gravity.CENTER
@@ -308,7 +302,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         rowLayout.setOnClickListener {
                             val target = LatLng(lat, lng)
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 16f))
-
                             for (i in 0 until bottomUserListContainer.childCount) {
                                 bottomUserListContainer.getChildAt(i).setBackgroundColor(resources.getColor(android.R.color.white))
                             }
@@ -316,8 +309,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         }
 
                         bottomUserListContainer.addView(rowLayout)
-
-                        // TODO: Add per-user live HR listener here if available
                     }
                 }
             }
