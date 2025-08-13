@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.Gravity
-import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -20,7 +19,6 @@ import com.google.firebase.database.*
 import kotlin.random.Random
 import android.text.Editable
 import android.text.TextWatcher
-
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -40,7 +38,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private val heartRateUpdateRunnable = object : Runnable {
         override fun run() {
             updateContactsHeartRates()
-            heartRateUpdateTimer.postDelayed(this, 10000) // Update every 10 seconds
+            heartRateUpdateTimer.postDelayed(this, 10000)
         }
     }
 
@@ -237,22 +235,24 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val userListLayout = view.findViewById<LinearLayout>(R.id.bottomUserListContainer)
         val mainUserInfoTextView = view.findViewById<TextView>(R.id.mainUserInfoTextView)
 
-        // Display main user info and make it clickable
-        val mainUserHR = mainUserHeartRate ?: 0
-        val lastUserHR = mainUserLastUpdatedHeartRate ?: 0
-        mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainUserHR bpm | Last HR: $lastUserHR bpm"
+        // Map to hold references to each user row's heart rate TextViews
+        val userHeartRateViews = mutableMapOf<String, Pair<TextView, TextView>>()
 
-        // Make main user info clickable
+        fun updateMainUserHRText() {
+            val mainHR = mainUserHeartRate ?: 0
+            val lastHR = mainUserLastUpdatedHeartRate ?: 0
+            mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainHR bpm | Last HR: $lastHR bpm"
+        }
+
+        updateMainUserHRText()
+
         mainUserInfoTextView.setOnClickListener {
             showMainUserOnMap()
             dialog.dismiss()
         }
 
-        // Set +63 prefix initially
         addUserMobile.setText("+63")
         addUserMobile.setSelection(addUserMobile.text.length)
-
-        // Prevent removing +63 prefix
         addUserMobile.addTextChangedListener(object : TextWatcher {
             private var isEditing = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -268,16 +268,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
-        // Add User Button Click
         addUserButton.setOnClickListener {
             val name = addUserName.text.toString().trim()
             val mobile = addUserMobile.text.toString().trim()
-
             if (name.isEmpty() || mobile.isEmpty()) {
                 showToast("Please enter both name and mobile number")
                 return@setOnClickListener
             }
-
             val numberPart = mobile.removePrefix("+63")
             if (!numberPart.matches(Regex("\\d{10}"))) {
                 showToast("Mobile number must be in format +639XXXXXXXXX")
@@ -295,99 +292,103 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 "lastHeartrate" to Random.nextInt(60, 100)
             )
 
-            newUserRef.setValue(userData)
-                .addOnSuccessListener {
-                    showToast("User added successfully")
-                    addUserName.text.clear()
-                    addUserMobile.setText("+63")
-                    addUserMobile.setSelection(addUserMobile.text.length)
-                }
-                .addOnFailureListener { e ->
-                    showToast("Failed to add user: ${e.message}")
-                }
+            newUserRef.setValue(userData).addOnSuccessListener {
+                showToast("User added successfully")
+                addUserName.text.clear()
+                addUserMobile.setText("+63")
+                addUserMobile.setSelection(addUserMobile.text.length)
+            }.addOnFailureListener { e ->
+                showToast("Failed to add user: ${e.message}")
+            }
         }
 
-        // Populate user list with 4-column layout (including Locate button)
-        userContactsRef.addValueEventListener(object : ValueEventListener {
+        val userListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 userListLayout.removeAllViews()
+                userHeartRateViews.clear()
 
-                for (userSnapshot in snapshot.children) {
-                    val name = userSnapshot.child("name").getValue(String::class.java) ?: ""
-                    val heartrate = userSnapshot.child("heartrate").getValue(Int::class.java) ?: 0
-                    val lastHeartrate = userSnapshot.child("lastHeartrate").getValue(Int::class.java) ?: 0
-                    val lat = userSnapshot.child("latitude").getValue(Double::class.java) ?: 0.0
-                    val lng = userSnapshot.child("longitude").getValue(Double::class.java) ?: 0.0
+                for (userSnap in snapshot.children) {
+                    val key = userSnap.key ?: continue
+                    val name = userSnap.child("name").getValue(String::class.java) ?: ""
+                    val currentHR = userSnap.child("heartrate").getValue(Int::class.java) ?: 0
+                    val lastHR = userSnap.child("lastHeartrate").getValue(Int::class.java) ?: 0
+                    val lat = userSnap.child("latitude").getValue(Double::class.java) ?: 0.0
+                    val lng = userSnap.child("longitude").getValue(Double::class.java) ?: 0.0
 
-                    // Create horizontal layout for each user row
                     val userRow = LinearLayout(this@Dashboard)
                     userRow.orientation = LinearLayout.HORIZONTAL
                     userRow.setPadding(8, 8, 8, 8)
                     userRow.setBackgroundColor(android.graphics.Color.parseColor("#F5F5F5"))
-                    val layoutParams = LinearLayout.LayoutParams(
+                    userRow.layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-                    layoutParams.setMargins(0, 4, 0, 4)
-                    userRow.layoutParams = layoutParams
+                    ).apply { setMargins(0, 4, 0, 4) }
                     userRow.gravity = Gravity.CENTER_VERTICAL
 
-                    // User Name (weight 2.5)
-                    val nameTextView = TextView(this@Dashboard)
-                    nameTextView.text = name
-                    nameTextView.textSize = 14f
-                    nameTextView.setTextColor(android.graphics.Color.BLACK)
-                    val nameParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2.5f)
-                    nameTextView.layoutParams = nameParams
-
-                    // Current Heart Rate (weight 2)
-                    val currentHRTextView = TextView(this@Dashboard)
-                    currentHRTextView.text = "Now: $heartrate"
-                    currentHRTextView.textSize = 12f
-                    currentHRTextView.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-                    currentHRTextView.gravity = Gravity.CENTER
-                    val currentHRParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
-                    currentHRTextView.layoutParams = currentHRParams
-
-                    // Last Heart Rate (weight 2)
-                    val lastHRTextView = TextView(this@Dashboard)
-                    lastHRTextView.text = "Last: $lastHeartrate"
-                    lastHRTextView.textSize = 12f
-                    lastHRTextView.setTextColor(android.graphics.Color.parseColor("#F44336"))
-                    lastHRTextView.gravity = Gravity.CENTER
-                    val lastHRParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
-                    lastHRTextView.layoutParams = lastHRParams
-
-                    // Locate Button (weight 1.5)
-                    val locateButton = Button(this@Dashboard)
-                    locateButton.text = "Locate"
-                    locateButton.textSize = 10f
-                    locateButton.setTextColor(android.graphics.Color.WHITE)
-                    locateButton.setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
-                    val buttonParams = LinearLayout.LayoutParams(0, 32.dpToPx(), 1.5f)
-                    buttonParams.setMargins(4.dpToPx(), 0, 0, 0)
-                    locateButton.layoutParams = buttonParams
-                    locateButton.setPadding(4.dpToPx(), 4.dpToPx(), 4.dpToPx(), 4.dpToPx())
-
-                    // Set click listener for the locate button
-                    locateButton.setOnClickListener {
-                        showUserOnMap(name, lat, lng, heartrate)
-                        dialog.dismiss()
+                    val nameTextView = TextView(this@Dashboard).apply {
+                        text = name
+                        textSize = 14f
+                        setTextColor(android.graphics.Color.BLACK)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2.5f)
                     }
 
-                    // Add all views to the row
+                    val currentHRTextView = TextView(this@Dashboard).apply {
+                        text = "Now: $currentHR"
+                        textSize = 12f
+                        setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
+                    }
+
+                    val lastHRTextView = TextView(this@Dashboard).apply {
+                        text = "Last: $lastHR"
+                        textSize = 12f
+                        setTextColor(android.graphics.Color.parseColor("#F44336"))
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
+                    }
+
+                    val locateButton = Button(this@Dashboard).apply {
+                        text = "Locate"
+                        textSize = 10f
+                        setTextColor(android.graphics.Color.WHITE)
+                        setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
+                        layoutParams = LinearLayout.LayoutParams(0, 32.dpToPx(), 1.5f).apply { setMargins(4.dpToPx(), 0, 0, 0) }
+                        setPadding(4.dpToPx(), 4.dpToPx(), 4.dpToPx(), 4.dpToPx())
+                        setOnClickListener {
+                            showUserOnMap(name, lat, lng, currentHR)
+                            dialog.dismiss()
+                        }
+                    }
+
                     userRow.addView(nameTextView)
                     userRow.addView(currentHRTextView)
                     userRow.addView(lastHRTextView)
                     userRow.addView(locateButton)
-
                     userListLayout.addView(userRow)
+
+                    userHeartRateViews[key] = Pair(currentHRTextView, lastHRTextView)
                 }
+
+                updateMainUserHRText()
             }
 
             override fun onCancelled(error: DatabaseError) {
                 showToast("Failed to load users: ${error.message}")
             }
+        }
+
+        userContactsRef.addValueEventListener(userListener)
+        heartRateRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val hr = snapshot.getValue(Int::class.java)
+                if (hr != null) {
+                    mainUserLastUpdatedHeartRate = mainUserHeartRate
+                    mainUserHeartRate = hr
+                    updateMainUserHRText()
+                }
+            }
+            override fun onCancelled(error: DatabaseError) {}
         })
 
         dialog.setContentView(view)
@@ -397,14 +398,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private fun showMainUserOnMap() {
         if (::mMap.isInitialized && mainUserMarker != null) {
             val userLocation = mainUserMarker!!.position
-
-            // Move camera to main user's location
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
-
-            // Show main user marker info window
             mainUserMarker!!.showInfoWindow()
-
-            // Show toast with main user details
             val currentHR = mainUserHeartRate ?: 0
             showToast("$currentUsername (You) - Heart Rate: $currentHR bpm")
         }
@@ -413,17 +408,9 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     private fun showUserOnMap(name: String, lat: Double, lng: Double, heartrate: Int) {
         if (::mMap.isInitialized) {
             val userLocation = LatLng(lat, lng)
-
-            // Move camera to user's location
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 15f))
-
-            // Find the marker for this user and show info window
             val marker = addedUserMarkers.values.find { it.title == name }
-            if (marker != null) {
-                marker.showInfoWindow()
-            }
-
-            // Optional: Show a toast with user details
+            marker?.showInfoWindow()
             showToast("$name - Heart Rate: $heartrate bpm")
         }
     }
@@ -469,8 +456,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             for (contactSnap in snapshot.children) {
                 val currentHR = contactSnap.child("heartrate").getValue(Int::class.java) ?: 60
                 val newHR = Random.nextInt(60, 120)
-
-                // Update heart rate values
                 contactSnap.ref.child("lastHeartrate").setValue(currentHR)
                 contactSnap.ref.child("heartrate").setValue(newHR)
             }
@@ -482,10 +467,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         heartRateUpdateTimer.removeCallbacks(heartRateUpdateRunnable)
     }
 
-    // Extension function to convert dp to pixels
-    private fun Int.dpToPx(): Int {
-        return (this * resources.displayMetrics.density).toInt()
-    }
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun showToast(msg: String) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
