@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
-import android.text.SpannableString
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.view.View
@@ -42,17 +41,18 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     private var firebaseLocation: LatLng? = null
     private var hasZoomedInitially = false
 
-    private val REQUEST_CALL_PERMISSION = 1234
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map2)
 
-        locationDatabase = FirebaseDatabase.getInstance().getReference("location")
-        policeDatabase = FirebaseDatabase.getInstance("https://ahhh-41e71-default-rtdb.firebaseio.com")
-            .getReference("location/police_stations")
+        // Correct references based on your Firebase structure
+        locationDatabase = FirebaseDatabase.getInstance()
+            .getReference("location")
+        policeDatabase = FirebaseDatabase.getInstance()
+            .getReference("police stations")
 
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.mapFragment) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
         showPoliceButton = findViewById(R.id.showPoliceButton)
@@ -67,14 +67,14 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
             } ?: Toast.makeText(this, "Fetching current location...", Toast.LENGTH_SHORT).show()
         }
 
-        // Enable clickable links on TextView
         policeInfoTextView.movementMethod = LinkMovementMethod.getInstance()
     }
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
             googleMap.isMyLocationEnabled = false
             googleMap.uiSettings.isMyLocationButtonEnabled = false
         }
@@ -122,17 +122,6 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                     return
                 }
 
-                googleMap.clear()
-
-                firebaseLocation?.let {
-                    googleMap.addMarker(
-                        MarkerOptions()
-                            .position(it)
-                            .title("Your Location (Realtime)")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                    )
-                }
-
                 var nearestStation: LatLng? = null
                 var nearestSnapshot: DataSnapshot? = null
                 var minDistance = Double.MAX_VALUE
@@ -140,10 +129,10 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                 for (stationSnapshot in snapshot.children) {
                     val policeLat = stationSnapshot.child("latitude").getValue(Double::class.java)
                     val policeLng = stationSnapshot.child("longitude").getValue(Double::class.java)
-                    if (policeLat == null || policeLng == null) continue
+
+                    if (policeLat == null || policeLng == null || policeLat.isNaN() || policeLng.isNaN()) continue
 
                     val distance = calculateDistance(lat, lng, policeLat, policeLng)
-
                     if (distance < minDistance) {
                         minDistance = distance
                         nearestStation = LatLng(policeLat, policeLng)
@@ -151,34 +140,37 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
                     }
                 }
 
-                nearestStation?.let {
+                nearestStation?.let { stationLatLng ->
+                    val stationName = nearestSnapshot?.child("name")?.getValue(String::class.java)
+                        ?: nearestSnapshot?.key
+                        ?: "Unnamed Station"
+
                     googleMap.addMarker(
                         MarkerOptions()
-                            .position(it)
-                            .title("Nearest Police Station")
+                            .position(stationLatLng)
+                            .title(stationName) // ✅ Use actual name
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                     )
-                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(it, 15f))
-                    firebaseLocation?.let { userLoc -> drawRouteAndShowETA(userLoc, it) }
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(stationLatLng, 15f))
+                    firebaseLocation?.let { userLoc -> drawRouteAndShowETA(userLoc, stationLatLng) }
                 }
 
-                nearestSnapshot?.let {
-                    val name = it.key ?: "Unnamed Station"
-                    val contact = it.child("Contact").getValue(String::class.java)
+                nearestSnapshot?.let { snapshot ->
+                    val name = snapshot.child("name").getValue(String::class.java)
+                        ?: snapshot.key
+                        ?: "Unnamed Station"
+                    val contact = snapshot.child("contact").getValue(String::class.java)
                     val contactText = if (contact.isNullOrBlank()) "No contact info available" else contact.trim()
 
-                    // Build clickable SpannableString for Contact
                     val displayText = buildSpannedString {
                         append("\uD83D\uDEA8 $name\n")
                         bold { append("\uD83D\uDCDE ") }
                         if (contactText == "No contact info available") {
                             append(contactText)
                         } else {
-                            // Make the contact clickable
                             val start = length
                             append(contactText)
                             val end = length
-
                             setSpan(object : ClickableSpan() {
                                 override fun onClick(widget: View) {
                                     dialPhoneNumber(contactText)
@@ -197,16 +189,16 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
         })
     }
 
+
+
     private fun dialPhoneNumber(phoneNumber: String) {
         if (phoneNumber.isBlank() || phoneNumber == "No contact info available") {
             Toast.makeText(this, "No valid contact number to dial", Toast.LENGTH_SHORT).show()
             return
         }
-
         val intent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:$phoneNumber")
         }
-        // No CALL_PHONE permission needed for ACTION_DIAL
         if (intent.resolveActivity(packageManager) != null) {
             startActivity(intent)
         } else {
@@ -221,7 +213,7 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun drawRouteAndShowETA(origin: LatLng, destination: LatLng) {
-        val apiKey = "AIzaSyDVBoZ6zNHuL6m5XypynmCHRbf3CWUZnJI"
+        val apiKey = "YOUR_GOOGLE_MAPS_API_KEY"
         val url = "https://maps.googleapis.com/maps/api/directions/json?" +
                 "origin=${origin.latitude},${origin.longitude}" +
                 "&destination=${destination.latitude},${destination.longitude}" +
@@ -295,7 +287,6 @@ class Map : AppCompatActivity(), OnMapReadyCallback {
             val p = LatLng(lat.toDouble() / 1E5, lng.toDouble() / 1E5)
             poly.add(p)
         }
-
         return poly
     }
 }
