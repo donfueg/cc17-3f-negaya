@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -17,8 +19,8 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.firebase.database.*
 import kotlin.random.Random
-import android.text.Editable
-import android.text.TextWatcher
+import java.text.SimpleDateFormat
+import java.util.*
 
 class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
@@ -35,6 +37,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     private val addedUserMarkers = mutableMapOf<String, Marker>()
     private val heartRateUpdateTimer = android.os.Handler(android.os.Looper.getMainLooper())
+
     private val heartRateUpdateRunnable = object : Runnable {
         override fun run() {
             updateContactsHeartRates()
@@ -44,6 +47,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
     private var mainUserHeartRate: Int? = null
     private var mainUserLastUpdatedHeartRate: Int? = null
+    private var mainUserLastUpdatedTime: String? = null
 
     private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
@@ -134,7 +138,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun setupRealtimeListeners() {
-        // Main user location
         locationRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val lat = snapshot.child("latitude").getValue(Double::class.java)
@@ -162,13 +165,13 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
-        // Main user heart rate
         heartRateRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val hr = snapshot.getValue(Int::class.java)
                 if (hr != null) {
                     mainUserLastUpdatedHeartRate = mainUserHeartRate
                     mainUserHeartRate = hr
+                    mainUserLastUpdatedTime = getCurrentTimeStamp()
                     runOnUiThread {
                         usernameTextView.text = "Hello $currentUsername"
                     }
@@ -180,7 +183,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         })
 
-        // Contacts real-time update
         userContactsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 runOnUiThread {
@@ -198,7 +200,6 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         val lng = contactSnap.child("longitude").getValue(Double::class.java) ?: continue
 
                         val pos = LatLng(lat, lng)
-
                         val existingMarker = addedUserMarkers[key]
                         if (existingMarker == null) {
                             val marker = mMap.addMarker(
@@ -235,13 +236,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val userListLayout = view.findViewById<LinearLayout>(R.id.bottomUserListContainer)
         val mainUserInfoTextView = view.findViewById<TextView>(R.id.mainUserInfoTextView)
 
-        // Map to hold references to each user row's heart rate TextViews
-        val userHeartRateViews = mutableMapOf<String, Pair<TextView, TextView>>()
-
         fun updateMainUserHRText() {
             val mainHR = mainUserHeartRate ?: 0
             val lastHR = mainUserLastUpdatedHeartRate ?: 0
-            mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainHR bpm | Last HR: $lastHR bpm"
+            val lastTime = mainUserLastUpdatedTime ?: "N/A"
+            mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainHR bpm | Last HR: $lastHR bpm\nLast Updated: $lastTime"
         }
 
         updateMainUserHRText()
@@ -282,6 +281,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
 
             val randomLocation = getRandomBaguioLocation()
+            val nowTime = getCurrentTimeStamp()
             val newUserRef = userContactsRef.push()
             val userData = mapOf(
                 "name" to name,
@@ -289,7 +289,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 "latitude" to randomLocation.latitude,
                 "longitude" to randomLocation.longitude,
                 "heartrate" to Random.nextInt(60, 100),
-                "lastHeartrate" to Random.nextInt(60, 100)
+                "lastHeartrate" to Random.nextInt(60, 100),
+                "lastUpdatedTime" to nowTime
             )
 
             newUserRef.setValue(userData).addOnSuccessListener {
@@ -305,25 +306,27 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
         val userListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 userListLayout.removeAllViews()
-                userHeartRateViews.clear()
-
                 for (userSnap in snapshot.children) {
-                    val key = userSnap.key ?: continue
                     val name = userSnap.child("name").getValue(String::class.java) ?: ""
                     val currentHR = userSnap.child("heartrate").getValue(Int::class.java) ?: 0
                     val lastHR = userSnap.child("lastHeartrate").getValue(Int::class.java) ?: 0
+                    val lastUpdatedTime = userSnap.child("lastUpdatedTime").getValue(String::class.java) ?: "N/A"
                     val lat = userSnap.child("latitude").getValue(Double::class.java) ?: 0.0
                     val lng = userSnap.child("longitude").getValue(Double::class.java) ?: 0.0
 
                     val userRow = LinearLayout(this@Dashboard)
-                    userRow.orientation = LinearLayout.HORIZONTAL
+                    userRow.orientation = LinearLayout.VERTICAL
                     userRow.setPadding(8, 8, 8, 8)
                     userRow.setBackgroundColor(android.graphics.Color.parseColor("#F5F5F5"))
                     userRow.layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     ).apply { setMargins(0, 4, 0, 4) }
-                    userRow.gravity = Gravity.CENTER_VERTICAL
+
+                    val topRow = LinearLayout(this@Dashboard).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
 
                     val nameTextView = TextView(this@Dashboard).apply {
                         text = name
@@ -354,22 +357,27 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                         setTextColor(android.graphics.Color.WHITE)
                         setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
                         layoutParams = LinearLayout.LayoutParams(0, 32.dpToPx(), 1.5f).apply { setMargins(4.dpToPx(), 0, 0, 0) }
-                        setPadding(4.dpToPx(), 4.dpToPx(), 4.dpToPx(), 4.dpToPx())
                         setOnClickListener {
                             showUserOnMap(name, lat, lng, currentHR)
                             dialog.dismiss()
                         }
                     }
 
-                    userRow.addView(nameTextView)
-                    userRow.addView(currentHRTextView)
-                    userRow.addView(lastHRTextView)
-                    userRow.addView(locateButton)
+                    topRow.addView(nameTextView)
+                    topRow.addView(currentHRTextView)
+                    topRow.addView(lastHRTextView)
+                    topRow.addView(locateButton)
+
+                    val timeTextView = TextView(this@Dashboard).apply {
+                        text = "Updated: $lastUpdatedTime"
+                        textSize = 10f
+                        setTextColor(android.graphics.Color.DKGRAY)
+                    }
+
+                    userRow.addView(topRow)
+                    userRow.addView(timeTextView)
                     userListLayout.addView(userRow)
-
-                    userHeartRateViews[key] = Pair(currentHRTextView, lastHRTextView)
                 }
-
                 updateMainUserHRText()
             }
 
@@ -385,6 +393,7 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 if (hr != null) {
                     mainUserLastUpdatedHeartRate = mainUserHeartRate
                     mainUserHeartRate = hr
+                    mainUserLastUpdatedTime = getCurrentTimeStamp()
                     updateMainUserHRText()
                 }
             }
@@ -393,6 +402,10 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
 
         dialog.setContentView(view)
         dialog.show()
+    }
+
+    private fun getCurrentTimeStamp(): String {
+        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
     }
 
     private fun showMainUserOnMap() {
@@ -452,12 +465,14 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun updateContactsHeartRates() {
+        val nowTime = getCurrentTimeStamp()
         userContactsRef.get().addOnSuccessListener { snapshot ->
             for (contactSnap in snapshot.children) {
                 val currentHR = contactSnap.child("heartrate").getValue(Int::class.java) ?: 60
                 val newHR = Random.nextInt(60, 120)
                 contactSnap.ref.child("lastHeartrate").setValue(currentHR)
                 contactSnap.ref.child("heartrate").setValue(newHR)
+                contactSnap.ref.child("lastUpdatedTime").setValue(nowTime)
             }
         }
     }
