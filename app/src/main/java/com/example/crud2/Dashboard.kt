@@ -240,16 +240,17 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             val mainHR = mainUserHeartRate ?: 0
             val lastHR = mainUserLastUpdatedHeartRate ?: 0
             val lastTime = mainUserLastUpdatedTime ?: "N/A"
-            mainUserInfoTextView.text = "Main User: $currentUsername | Current HR: $mainHR bpm | Last HR: $lastHR bpm\nLast Updated: $lastTime"
+            mainUserInfoTextView.text =
+                "Main User: $currentUsername | Current HR: $mainHR bpm | Last HR: $lastHR bpm\nLast Updated: $lastTime"
         }
 
         updateMainUserHRText()
-
         mainUserInfoTextView.setOnClickListener {
             showMainUserOnMap()
             dialog.dismiss()
         }
 
+        // Mobile number validation
         addUserMobile.setText("+63")
         addUserMobile.setSelection(addUserMobile.text.length)
         addUserMobile.addTextChangedListener(object : TextWatcher {
@@ -259,10 +260,11 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             override fun afterTextChanged(s: Editable?) {
                 if (isEditing) return
                 isEditing = true
-                if (!s.toString().startsWith("+63")) {
-                    addUserMobile.setText("+63")
-                    addUserMobile.setSelection(addUserMobile.text.length)
-                }
+                var text = s.toString()
+                if (!text.startsWith("+63")) text = "+63"
+                if (text.length > 13) text = text.substring(0, 13)
+                addUserMobile.setText(text)
+                addUserMobile.setSelection(text.length)
                 isEditing = false
             }
         })
@@ -274,9 +276,10 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
                 showToast("Please enter both name and mobile number")
                 return@setOnClickListener
             }
+
             val numberPart = mobile.removePrefix("+63")
-            if (!numberPart.matches(Regex("\\d{10}"))) {
-                showToast("Mobile number must be in format +639XXXXXXXXX")
+            if (!numberPart.matches(Regex("9\\d{9}"))) {
+                showToast("Mobile number must start with 9 and be 10 digits after +63")
                 return@setOnClickListener
             }
 
@@ -303,7 +306,8 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
-        val userListener = object : ValueEventListener {
+        // Single listener for showing users
+        userContactsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 userListLayout.removeAllViews()
                 for (userSnap in snapshot.children) {
@@ -384,25 +388,12 @@ class Dashboard : AppCompatActivity(), OnMapReadyCallback {
             override fun onCancelled(error: DatabaseError) {
                 showToast("Failed to load users: ${error.message}")
             }
-        }
-
-        userContactsRef.addValueEventListener(userListener)
-        heartRateRef.addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val hr = snapshot.getValue(Int::class.java)
-                if (hr != null) {
-                    mainUserLastUpdatedHeartRate = mainUserHeartRate
-                    mainUserHeartRate = hr
-                    mainUserLastUpdatedTime = getCurrentTimeStamp()
-                    updateMainUserHRText()
-                }
-            }
-            override fun onCancelled(error: DatabaseError) {}
         })
 
         dialog.setContentView(view)
         dialog.show()
     }
+
 
     private fun getCurrentTimeStamp(): String {
         return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
